@@ -164,3 +164,16 @@ describe('wholeMin', () => {
     expect(Object.is(wholeMin(-0.4), 0)).toBe(true);
   });
 });
+
+describe('limitForDisplay', () => {
+  it('추천은 순위 1~5위, 다른 구역도 5곳까지만', async () => {
+    const { limitForDisplay } = await import('./recommend');
+    const ranked = [8, 2, 6, 1, 4, 3, 7, 5].map((rank) => ({ cinemaId: `c${rank}`, rank }) as unknown as RankedCinema);
+    const extra = Array.from({ length: 9 }, (_, i) => ({ cinemaId: `x${i}` }));
+    const out = limitForDisplay({ meta: {}, cinemas: ranked, unroutableCinemas: extra, unreachableCinemas: extra });
+    expect(out.cinemas.map((c) => c.rank)).toEqual([1, 2, 3, 4, 5]);
+    expect(out.unroutableCinemas).toHaveLength(5);
+    expect(out.unreachableCinemas).toHaveLength(5);
+    expect(ranked).toHaveLength(8); // 원본은 그대로
+  });
+});

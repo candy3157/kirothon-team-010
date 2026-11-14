@@ -62,3 +62,23 @@ export function initialViewPoints(
     .slice(0, n)
     .map((c) => c.location);
 }
+
+/** 지도와 목록에 보여 줄 영화관 수 (구역마다) */
+export const SHOW_TOP_COUNT = 5;
+
+/**
+ * 화면에 보여 줄 만큼만 남긴 추천 결과. 추천 영화관은 순위 1~N위,
+ * "확인이 필요한 영화관"과 "갈 수 없는 영화관"도 각각 N곳까지만 둔다.
+ * 서버 결과는 그대로이고, 화면에서만 줄인다.
+ */
+export function limitForDisplay<T extends { cinemas: RankedCinema[]; unroutableCinemas: unknown[]; unreachableCinemas: unknown[] }>(
+  data: T,
+  n: number = SHOW_TOP_COUNT,
+): T {
+  return {
+    ...data,
+    cinemas: [...data.cinemas].sort((a, b) => a.rank - b.rank).slice(0, n),
+    unroutableCinemas: data.unroutableCinemas.slice(0, n),
+    unreachableCinemas: data.unreachableCinemas.slice(0, n),
+  };
+}
