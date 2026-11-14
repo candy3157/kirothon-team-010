@@ -42,8 +42,9 @@ export function Recommend({ ctx, result, onRetry, onEditConditions, onChangeMovi
   const movie = ctx.movie!;
   const origin = ctx.origin!;
 
-  // 새 결과가 오면 선택 해제
+  // 새 결과가 오면 선택 해제 (목록이 새로 그려질 때는 밀기 없이)
   useEffect(() => {
+    setPaneDir('');
     setSelectedId(null);
     setShowResearch(false);
     listScroll.current = 0;
@@ -61,9 +62,20 @@ export function Recommend({ ctx, result, onRetry, onEditConditions, onChangeMovi
     return () => removeEventListener('resize', measure);
   }, [sheet, selectedId]);
 
+  // 목록 ↔ 상세 전환 방향 (상세로 들어가면 fwd, 목록으로 돌아오면 back)
+  const [paneDir, setPaneDir] = useState<'fwd' | 'back' | ''>('');
+  const close = () => {
+    setPaneDir('back');
+    setSelectedId(null);
+  };
+
   // Esc로 상세 닫기
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !document.querySelector('.modal') && setSelectedId(null);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || document.querySelector('.modal')) return;
+      setPaneDir('back');
+      setSelectedId(null);
+    };
     addEventListener('keydown', onKey);
     return () => removeEventListener('keydown', onKey);
   }, []);
@@ -77,6 +89,7 @@ export function Recommend({ ctx, result, onRetry, onEditConditions, onChangeMovi
 
   const open = (id: string) => {
     if (listRef.current) listScroll.current = listRef.current.scrollTop;
+    setPaneDir('fwd');
     setSelectedId(id);
     if (sheet === 'peek') setSheet('mid');
   };
@@ -154,17 +167,19 @@ export function Recommend({ ctx, result, onRetry, onEditConditions, onChangeMovi
 
         <div className="sheet-content">
           {selected && data ? (
+            <div className={`pane ${paneDir}`} key={`detail-${selected.cinemaId}`}>
             <TheaterDetail
-              key={selected.cinemaId}
               cinema={selected}
               origin={origin}
               meta={data.meta}
               movieTitle={movie.title}
               runtimeMinutes={movie.runtimeMinutes}
-              onBack={() => setSelectedId(null)}
+              onBack={close}
               onRetry={onRetry}
             />
+            </div>
           ) : (
+            <div className={`pane ${paneDir}`} key="list">
             <ResultList
               result={result}
               loading={loading}
@@ -188,6 +203,7 @@ export function Recommend({ ctx, result, onRetry, onEditConditions, onChangeMovi
               onChangeMovie={onChangeMovie}
               isNow={ctx.departure === 'now'}
             />
+            </div>
           )}
         </div>
       </div>

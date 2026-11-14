@@ -84,10 +84,12 @@ export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
   };
 
   return (
-    <section className="screen" aria-labelledby="s02h">
+    <section className="screen dep-screen" aria-labelledby="s02h">
       <div className="wrap">
         <Steps step={2} />
+        <i className="sp sp-a" aria-hidden="true" />
         <h1 id="s02h">어디서, 어떻게 출발하나요?</h1>
+        <i className="sp sp-b" aria-hidden="true" />
 
         <div className="picked">
           <Poster movie={m} small />
@@ -101,6 +103,7 @@ export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
         </div>
 
         {/* 출발지 */}
+        <i className="sp sp-c" aria-hidden="true" />
         <div className="label">출발지</div>
         <div className="origin-row">
           <button
@@ -110,7 +113,9 @@ export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
           >
             <Icon name="pin" /> 현재 위치 사용
           </button>
-          <label className="field" style={{ flex: 1, padding: '8px 12px' }}>
+          {/* 장소 목록은 아래 내용을 밀지 않고 위에 떠서 열린다 (화면 스크롤 방지) */}
+          <div className="origin-field">
+          <label className="field" style={{ padding: '8px 12px' }}>
             <input
               placeholder="장소 이름이나 주소 검색"
               aria-label="출발지 검색"
@@ -118,9 +123,9 @@ export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               onFocus={() => setShowSuggest(true)}
+              onBlur={() => setTimeout(() => setShowSuggest(false), 150)}
             />
           </label>
-        </div>
         {showSuggest && (
           <div className="suggest" role="listbox">
             {remote.status === 'loading' && remote.items.length === 0 ? (
@@ -154,6 +159,8 @@ export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
             )}
           </div>
         )}
+          </div>
+        </div>
         {geo === 'loading' && (
           <div className="notice">
             <span className="spinner" />
@@ -171,6 +178,7 @@ export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
         )}
 
         {/* 이동수단 */}
+        <i className="sp sp-c" aria-hidden="true" />
         <div className="label">이동수단</div>
         <div className="seg" role="group" aria-label="이동수단">
           {(Object.keys(MODE) as TransportMode[]).map((k) => (
@@ -182,6 +190,7 @@ export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
         </div>
 
         {/* 출발 시각 (오늘만) */}
+        <i className="sp sp-c" aria-hidden="true" />
         <div className="label">출발 시각 · 오늘</div>
         <div className="chips">
           <button className="chip" aria-pressed={ctx.departure === 'now'} onClick={() => onChange({ departure: 'now' })}>
@@ -207,6 +216,7 @@ export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
         {past && <div className="notice bad">지난 시각이에요. 출발 시각을 다시 선택해 주세요.</div>}
       </div>
 
+      {/* 한 화면 레이아웃의 맨 아래 칸 (고정 위치 대신 흐름 안에 둔다) */}
       <div className="cta-bar">
         <div className="inner">
           <button className="btn primary" disabled={!valid} onClick={onSubmit}>
