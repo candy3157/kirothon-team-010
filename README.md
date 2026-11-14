@@ -2,7 +2,7 @@
 
 > 보고 싶은 영화 하나만 고르면, 지금 출발해서 **제시간에 도착할 수 있는 모든 영화관과 회차**를 한 화면에 모아 보여 주고, 길찾기와 예매로 이어 주는 서비스예요.
 
-**Demo:** 데모 영상 링크 준비 중
+**Demo (배포 사이트):** [https://candy3157.cloud/kirothon/](https://candy3157.cloud/kirothon/)
 
 **발표자료:** [PRESENTATION.pdf](PRESENTATION.pdf)
 
