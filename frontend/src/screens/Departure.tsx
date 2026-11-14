@@ -163,6 +163,31 @@ export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
         )}
         {past && <div className="notice bad">지난 시각이에요. 출발 시각을 다시 선택해 주세요.</div>}
         {beyond && <div className="notice bad">오늘부터 {MAX_ADVANCE_DAYS + 1}일 안으로 골라 주세요.</div>}
+
+        {/* 상영 전 도착 여유 (원래 디자인: 늘 보이는 −/+ 칸) */}
+        <i className="sp sp-c" aria-hidden="true" />
+        <div className="opt-box">
+          <div className="opt-row">
+            <span>상영 전 도착 여유</span>
+            <div className="stepper">
+              <button
+                aria-label="여유 시간 줄이기"
+                disabled={ctx.bufferMinutes <= 0}
+                onClick={() => onChange({ bufferMinutes: Math.max(0, ctx.bufferMinutes - 5) })}
+              >
+                −
+              </button>
+              <b>{ctx.bufferMinutes}분</b>
+              <button
+                aria-label="여유 시간 늘리기"
+                disabled={ctx.bufferMinutes >= 40}
+                onClick={() => onChange({ bufferMinutes: Math.min(40, ctx.bufferMinutes + 5) })}
+              >
+                +
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* 한 화면 레이아웃의 맨 아래 칸 (고정 위치 대신 흐름 안에 둔다) */}

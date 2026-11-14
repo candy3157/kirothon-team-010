@@ -142,6 +142,7 @@ export async function recommend(deps: RecommendDeps, req: RecommendationRequest)
   const now = (deps.now ?? (() => new Date()))();
   const sortBy: SortBy = req.sortBy ?? DEFAULT_SORT_BY;
   const departure = parseDeparture(req.departureTime, now);
+  const bufferMinutes = req.bufferMinutes ?? BUFFER_MINUTES;
 
   // 조회 가능한 날짜(오늘 ~ 오늘+MAX_ADVANCE_DAYS) 밖의 출발시각 거부.
   const departureDate = seoulDateOf(departure);
@@ -182,7 +183,7 @@ export async function recommend(deps: RecommendDeps, req: RecommendationRequest)
     coverage: availability.coverage,
     source: availability.source,
     lastUpdatedAt: availability.lastUpdatedAt,
-    policy: publicPolicy(),
+    policy: { ...publicPolicy(), bufferMinutes },
   };
   const sampleNotices: Notice[] = availability.source === 'sample' ? [SAMPLE_NOTICE] : [];
 
@@ -231,7 +232,7 @@ export async function recommend(deps: RecommendDeps, req: RecommendationRequest)
       mode: req.transportMode,
       departure,
       lastShowtimeStart: last,
-      bufferMinutes: BUFFER_MINUTES,
+      bufferMinutes,
       maxSpeedKmh: MAX_SPEED_KMH,
     });
     if (v.unreachable && last) {
@@ -291,7 +292,7 @@ export async function recommend(deps: RecommendDeps, req: RecommendationRequest)
     const travelMinutes = Math.ceil(r.minutes);
     const showtimes: StoredShowtime[] = c.showtimes.map((s) => {
       const start = businessTimeToInstant(s.businessDate, s.businessTime);
-      const v = evaluateShowtime({ showtimeId: s.showtimeId, start, departure, travelMinutes });
+      const v = evaluateShowtime({ showtimeId: s.showtimeId, start, departure, travelMinutes, bufferMinutes });
       return {
         showtimeId: s.showtimeId,
         start,

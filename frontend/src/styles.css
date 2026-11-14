@@ -310,3 +310,12 @@ h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.035em; line-height: 1
 .dep-screen .origin-field .field { width: 100%; }
 .dep-screen .suggest { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 30; max-height: min(260px, 40vh); overflow-y: auto; margin: 0; }
 .dep-screen .cta-bar { position: static; flex: none; }
+
+/* 상영 전 도착 여유 (−/+ 칸) */
+.opt-box { border: 1px solid var(--line); border-radius: 4px; padding: 4px 14px; }
+.opt-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; font-size: 14px; }
+.stepper { display: flex; align-items: center; gap: 10px; }
+.stepper b { min-width: 40px; text-align: center; font-variant-numeric: tabular-nums; }
+.stepper button { width: 30px; height: 30px; border-radius: 3px; border: 1px solid var(--line); background: none; transition: transform 0.14s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.stepper button:active:not(:disabled) { transform: scale(0.92); }
+.stepper button:disabled { opacity: 0.35; cursor: not-allowed; }

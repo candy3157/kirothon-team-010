@@ -16,6 +16,8 @@ export interface SearchContext {
   transportMode: TransportMode;
   /** 'now' 또는 "YYYY-MM-DDTHH:mm" (서울 시각, 오늘부터 7일) */
   departure: 'now' | string;
+  /** 상영 전 도착 여유(분). −/+ 로 5분씩, 0–40분 */
+  bufferMinutes: number;
 }
 
 export const initialContext: SearchContext = {
@@ -23,6 +25,7 @@ export const initialContext: SearchContext = {
   origin: null,
   transportMode: 'transit',
   departure: 'now',
+  bufferMinutes: 10,
 };
 
 export const MODE: Record<TransportMode, { label: string; icon: IconName }> = {
@@ -33,4 +36,4 @@ export const MODE: Record<TransportMode, { label: string; icon: IconName }> = {
 
 /** 조건이 바뀌었는지 비교하는 키 */
 export const contextKey = (c: SearchContext) =>
-  JSON.stringify([c.movie?.movieId, c.origin?.latitude, c.origin?.longitude, c.transportMode, c.departure]);
+  JSON.stringify([c.movie?.movieId, c.origin?.latitude, c.origin?.longitude, c.transportMode, c.departure, c.bufferMinutes]);
