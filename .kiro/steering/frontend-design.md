@@ -99,6 +99,6 @@ fileMatchPattern: "frontend/**"
 
 - 계약은 `docs/openapi.yaml`. 타입은 `frontend/src/api/types.ts`에 맞춰 둔다.
 - 출발 시각은 **날짜 + 시간**으로 고른다(오늘부터 7일, `MAX_ADVANCE_DAYS`). `+09:00` ISO로 보낸다.
-- 상영 전 도착 여유는 사용자 설정이 없다(최종 구현에서 뺌). 서버 정책값(10분)을 쓰고, 상세 화면에 `meta.policy.bufferMinutes`를 보여준다.
-- **API에 없는 기능을 화면에서 바로 빼지 않는다.** 출발 날짜는 API에 맞춰 뺐다가 되살렸다. 먼저 팀에 "화면에서 뺄지, API를 고칠지" 묻는다.
+- 상영 전 도착 여유는 출발 조건 화면의 **−/+ 칸**(0–40분, 5분씩, 기본 10분)으로 정해 요청 `bufferMinutes`로 보낸다. 상세 화면에는 `meta.policy.bufferMinutes`(실제로 쓴 값)를 보여준다.
+- **API에 없는 기능을 화면에서 바로 빼지 않는다.** 출발 날짜와 여유 시간은 API에 맞춰 뺐다가 둘 다 되살렸다. 먼저 팀에 "화면에서 뺄지, API를 고칠지" 묻는다.
 - `not_showing`(상영 없음)과 `availability_unknown`(확인 불가), `unroutableCinemas`(경로 미확인)와 `unreachableCinemas`(도착 불가)를 서로 다른 화면으로 보여준다. 확인 못 한 것을 "없음"으로 표시하지 않는다.
