@@ -63,6 +63,9 @@
 | 구현 | Kiro Crew 채팅 | 지도 첫 화면을 결과 전체(전국)가 아닌 출발지 + 상위 5곳에 맞춤 | `frontend/src/components/MapView.tsx`, `frontend/src/lib/recommend.ts` |
 | 구현 | Kiro Crew 채팅 | 지도와 목록에 구역마다 상위 5곳만 표시 (서버 결과는 그대로) | `frontend/src/screens/Recommend.tsx`, `frontend/src/lib/recommend.ts` |
 | 구현 | Kiro Crew 채팅 | 여유·이동·지각 시간을 소수점 없이 표시 (버림, 반올림 안 함) | `frontend/src/lib/time.ts`, `frontend/src/components/TheaterDetail.tsx` |
+| 연동 | Kiro Crew 채팅 | 도착 여유 시간 브랜치(`feature/buffer-minutes`)를 최신 `main`에 합침. 스타일 충돌 1곳만 풀고(검색칸 X 버튼과 −/+ 버튼 스타일 둘 다 유지) 나머지는 자동 병합 | `feature/arrival-buffer`, `frontend/src/styles.css` |
+| 구현 | Kiro Crew 채팅 + 웹 검색 | 길찾기를 서버의 임시 주소(`example.com`) 대신 네이버 지도 길찾기로 연결. 출발지·영화관·이동수단을 채운 주소를 프론트에서 만듦 | `frontend/src/lib/geo.ts`, `frontend/src/components/TheaterDetail.tsx`, `backend/src/services/recommend.ts` |
+| 검증 | Kiro Crew 채팅 | 커밋 전에 바뀐 파일을 확인하다가, 내가 고치지 않은 지도 인증 실패 처리 수정이 섞인 것을 찾아 따로 분리. 사용자 확인 후 별도 커밋으로 넣음 | `frontend/src/components/MapView.tsx`, `frontend/src/lib/naverMap.ts` |
 
 ## 개발 과정에서 바뀐 점
 
@@ -128,6 +131,9 @@
 - **바뀐 네이버 검색 API 주소**: 지역 검색이 주소는 찾는데 장소 이름은 못 찾았어요. 키 길이(10자·40자)를 보고 NCP 콘솔 키임을 알아냈어요. 네이버 검색 API가 NAVER API HUB로 옮겨 가면서 주소와 헤더가 바뀌었는데, 코드는 옛 주소를 쓰고 있었어요. 공식 문서를 못 찾아 다른 서비스의 설명서로 주소를 확인했어요.
 - **소수점 여유 시간**: "지금 출발"은 초 단위까지 계산해서 "10.0991…분 여유"처럼 보였어요. 화면에서는 소수점을 버리도록 했어요(반올림하면 실제보다 여유가 많아 보일 수 있어요).
 
+- **가짜 길찾기 주소**: 백엔드가 길찾기 링크 자리에 임시 주소(`example.com`)를 넣고 있었고, 프론트는 이 값을 먼저 써서 엉뚱한 사이트가 열렸어요. 길찾기에는 출발지와 이동수단이 필요한데 이건 프론트가 알아요. 그래서 서버는 `null`을 주고, 프론트가 네이버 지도 길찾기 주소를 만들게 했어요. 이 웹 주소 규칙은 공식 문서에 없어서 함수 하나(`naverDirectionsUrl`)에만 모아 두고 사용자가 직접 눌러 확인했어요.
+- **네이버 지도 인증 실패 시 화면이 사라짐**: 인증에 실패하면 지도 SDK가 내부 객체를 비워서, 정리 코드가 오류를 내며 추천 목록까지 사라졌어요. 인증 실패 뒤에는 SDK를 부르지 않고, 위치 도식과 안내 문구를 보여 주게 했어요.
+
 ## 남은 일
 
 - `docs/integration-report.md`의 9개 시나리오를 실제로 다시 검증해야 해요.
@@ -139,6 +145,7 @@
 - TMDB 이용 조건에 따른 출처 표시를 화면에 넣어야 해요.
 - `frontend/demo/`는 디자인 기록용이고 실제 화면은 `frontend/src/`예요.
 - 출발 날짜 기능은 [PR #10](https://github.com/candy3157/kirothon-team-010/pull/10)에서 병합을 기다려요. 범위(7일, `MAX_ADVANCE_DAYS`)는 실제 공급자의 시간표 제공 범위에 맞춰 정해야 해요.
-- 여유 시간 설정은 `feature/buffer-minutes` 브랜치 작업이에요. 반영 시 화면(0–40분)과 API(0–60분)의 범위를 팀에서 맞춰야 해요.
+- 여유 시간 설정은 `feature/arrival-buffer`로 합쳤어요. 화면은 0–40분, API는 0–60분이에요. 화면이 더 좁아서 지금은 문제가 없지만, 범위를 맞출지 팀에서 정해야 해요.
+- 네이버 길찾기 웹 주소 규칙은 공식 문서가 없어요. 네이버가 바꾸면 `frontend/src/lib/geo.ts`의 `naverDirectionsUrl`만 고치면 돼요.
 - 이동수단별 최고 속도(자동차 150, 대중교통 350, 도보 10 km/h)는 임시 기본값이에요.
 - AT-16은 테스트에 번호 표기가 없어요. 확인이 필요해요.
