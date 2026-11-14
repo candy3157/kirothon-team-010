@@ -104,7 +104,7 @@ describe('loadConfig', () => {
 
   it('네이버 API 값은 .env에서 읽고, 없으면 기본 주소와 빈 키', () => {
     const empty = loadConfig({});
-    expect(empty.naver.searchLocalUrl).toBe('https://openapi.naver.com/v1/search/local.json');
+    expect(empty.naver.searchLocalUrl).toBe('https://naverapihub.apigw.ntruss.com/search/v1/local');
     expect(empty.naver.geocodeUrl).toBe('https://maps.apigw.ntruss.com/map-geocode/v2/geocode');
     expect(empty.naver.searchClientId).toBeUndefined();
     expect(empty.naver.mapsApiKey).toBeUndefined();

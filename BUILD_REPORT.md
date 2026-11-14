@@ -53,6 +53,16 @@
 | 구현 | Kiro Crew 채팅 + 웹 검색 | 출발지 검색 API `GET /api/places`: 네이버 지역 검색 → 결과 없으면 NCP Geocoding. 키는 서버에만, IP당 분당 30회 제한. 키가 없으면 기본 장소 목록으로 대체 | `backend/src/places/`, `backend/src/routes/places.ts`, `frontend/src/screens/Departure.tsx` |
 | 구현 | Kiro Crew 채팅 + 웹 검색 | 가짜 배경 지도를 네이버 지도(NCP Maps JS v3)로 교체. 키가 없거나 인증 실패면 가짜 지도로 대체 | `frontend/src/components/MapView.tsx`, `frontend/src/lib/naverMap.ts` |
 | 검증 | Kiro Crew 채팅 | 장소 검색 단위·라우트 테스트, `/api/places` OpenAPI 계약 추가 | `backend/test/places.test.ts`, `docs/openapi.yaml` |
+| 기획 | Kiro Crew 채팅 + 웹 검색 | 실제 데이터 출처 조사: 영화(TMDB·KOBIS), 영화관(인허가 데이터), 시간표·잔여 좌석(공개 API 없음), 길찾기(카카오 대중교통·도보는 제휴 전용). 가져올 수 없는 데이터를 표로 정리 | 이 문서 "개발 과정에서 바뀐 점" |
+| 기획 | Task Runner 명세 작성 | 실제 데이터 연동, 공식 예매 사이트 바로가기 작업을 Task Runner 입력용 명세로 작성 | `.kiro/specs/real-movie-data/requirements.md`, `.kiro/specs/booking-deeplink/requirements.md` |
+| 구현 | Kiro Crew 채팅 | `SHOWTIME_PROVIDER=real`: 영화 목록·포스터·러닝타임은 TMDB, 영화관은 인허가 CSV, 회차는 데모 값. 키가 없거나 `sample`이면 기존과 같음 | `backend/src/data/tmdb.ts`, `backend/src/data/cinemaCsv.ts`, `backend/src/data/real.ts` |
+| 구현 | Kiro Crew 채팅 | 인허가 CSV 좌표(EPSG:5174, Bessel TM)를 WGS84로 바꾸는 변환을 의존성 없이 구현 | `backend/src/data/geo5174.ts` |
+| 검증 | Kiro Crew 채팅 | 좌표 변환, CSV 묶기·이름 정리, TMDB 파싱·캐시·실패, 데모 회차, real 공급자 API 통합 테스트 | `backend/test/realData.test.ts` |
+| 문서 | Kiro Crew 채팅 | 데이터 출처·가공 규칙 정리 | `docs/data-sources.md` |
+| 연동 | Kiro Crew 채팅 + 웹 검색 | 장소 이름("센터필드") 검색 실패 원인 분석: NCP 콘솔(NAVER API HUB) 키인데 옛 개발자센터 주소·헤더로 부르고 있었음. 주소에 맞춰 헤더를 고르게 하고, 실패 이유(상태 코드만)를 로그에 남김 | `backend/src/places/provider.ts`, `backend/src/config.ts` |
+| 구현 | Kiro Crew 채팅 | 지도 첫 화면을 결과 전체(전국)가 아닌 출발지 + 상위 5곳에 맞춤 | `frontend/src/components/MapView.tsx`, `frontend/src/lib/recommend.ts` |
+| 구현 | Kiro Crew 채팅 | 지도와 목록에 구역마다 상위 5곳만 표시 (서버 결과는 그대로) | `frontend/src/screens/Recommend.tsx`, `frontend/src/lib/recommend.ts` |
+| 구현 | Kiro Crew 채팅 | 여유·이동·지각 시간을 소수점 없이 표시 (버림, 반올림 안 함) | `frontend/src/lib/time.ts`, `frontend/src/components/TheaterDetail.tsx` |
 
 ## 개발 과정에서 바뀐 점
 
@@ -88,6 +98,10 @@
   | 지도가 가짜 배경 | 네이버 지도 |
   | `/availability`를 안 씀 | 지금처럼 추천 결과로 안내 |
 
+- **실제 데이터: 가져올 수 있는 것만**: 영화와 영화관은 공개 데이터로 바꿨어요. 상영시간표와 잔여 좌석은 3사 모두 공개 API가 없어요. 예매 사이트 크롤링은 약관 위험 때문에 하지 않기로 했어요. 그래서 회차는 데모 값으로 두고, 응답 `source`를 `sample`로 표시해 실제 정보로 오해하지 않게 했어요.
+- **전국 영화관이 지도에 다 뜸**: 실제 영화관 약 630곳을 쓰자, 한 영화를 트는 곳이 전국에 퍼져 지도가 너무 넓어졌어요. "검색 반경 없음" 원칙 때문에 거리로 빼지는 않았어요. 먼저 지도 첫 화면만 상위 5곳에 맞췄고, 이어서 사용자 요청으로 지도와 목록 모두 순위 상위 5곳만 보이게 했어요. 거리 기준이 아니라 추천 순위 기준이라 원칙과 맞아요.
+- **Task Runner 대신 채팅으로**: 처음엔 실제 데이터 연동을 Task Runner로 돌렸어요. 그 사이 사용자가 영화관 CSV를 직접 구해 와서 범위가 좁아졌어요(TMDB + CSV). 그래서 채팅에서 바로 구현하고, 같은 일을 하던 Task Runner 실행은 멈췄어요.
+
 ## 어려웠던 점과 해결 방법
 
 - **실패하던 AT 시나리오**: 중간 검토에서 AT-10, AT-19 테스트가 실패했어요. 다음 실행에서 고쳐 통과시켰어요 (`backend/test/recommend.test.ts`).
@@ -107,11 +121,22 @@
 - **검은 지도**: 개발 모드(React StrictMode)가 지도를 두 번 만들면서, 지운 요소 위에 다시 그려 지도가 검게 보였어요. 지도를 만들 때마다 새 요소를 쓰게 고쳤어요.
 - **OpenAPI 들여쓰기 오류**: 영업일 문구를 바꾸면서 YAML 블록 들여쓰기가 깨졌어요. `/api/places`를 넣을 때 찾아 고쳤어요.
 
+- **CSV 한 줄 = 상영관 하나**: 인허가 CSV는 "CGV 대학로 3관"처럼 상영관마다 한 줄이에요. 같은 좌표 + 같은 브랜드를 영화관 하나로 묶고, 이름에서 "5관", "(주)", "DOLBY CINEMA관" 같은 말을 지웠어요. 영업 중인 3,489행이 약 630곳이 돼요.
+- **좌표계 변환**: CSV 좌표는 위경도가 아닌 평면 좌표(EPSG:5174)예요. 외부 라이브러리 없이 TM 역변환과 7변수 좌표 변환을 직접 구현했어요. 좌표계는 공개 자료로 추정한 값이라 지도에서 확인이 필요해요.
+- **키가 에러 메시지에 찍힘**: TMDB 키를 `.env`의 다른 줄에 넣자, 설정 오류 메시지가 그 값을 그대로 콘솔에 찍었어요. 설정 오류에는 값을 넣지 않도록 고치고 테스트를 추가했어요.
+
+- **바뀐 네이버 검색 API 주소**: 지역 검색이 주소는 찾는데 장소 이름은 못 찾았어요. 키 길이(10자·40자)를 보고 NCP 콘솔 키임을 알아냈어요. 네이버 검색 API가 NAVER API HUB로 옮겨 가면서 주소와 헤더가 바뀌었는데, 코드는 옛 주소를 쓰고 있었어요. 공식 문서를 못 찾아 다른 서비스의 설명서로 주소를 확인했어요.
+- **소수점 여유 시간**: "지금 출발"은 초 단위까지 계산해서 "10.0991…분 여유"처럼 보였어요. 화면에서는 소수점을 버리도록 했어요(반올림하면 실제보다 여유가 많아 보일 수 있어요).
+
 ## 남은 일
 
 - `docs/integration-report.md`의 9개 시나리오를 실제로 다시 검증해야 해요.
 - 장소 검색 결과의 핀 위치를 실제 키로 확인해야 해요.
-- 상영시간표와 경로는 샘플/mock 데이터예요. 실제 데이터 연동이 필요해요.
+- 상영시간표와 경로는 데모/mock 데이터예요. 시간표는 영화관 회사 제휴가 필요해요. 경로는 자동차(NCP Directions), 대중교통(ODsay) 후보를 찾아 두었어요.
+- 영화관 핀 위치(좌표 변환)를 지도에서 확인해야 해요.
+- 6위 아래 영화관은 화면에서 볼 수 없어요. 필요하면 "더 보기"를 붙여야 해요.
+- NAVER API HUB 지역 검색 주소는 공식 문서로 다시 확인해야 해요.
+- TMDB 이용 조건에 따른 출처 표시를 화면에 넣어야 해요.
 - `frontend/demo/`는 디자인 기록용이고 실제 화면은 `frontend/src/`예요.
 - 출발 날짜 기능은 [PR #10](https://github.com/candy3157/kirothon-team-010/pull/10)에서 병합을 기다려요. 범위(7일, `MAX_ADVANCE_DAYS`)는 실제 공급자의 시간표 제공 범위에 맞춰 정해야 해요.
 - 여유 시간 설정은 `feature/buffer-minutes` 브랜치 작업이에요. 반영 시 화면(0–40분)과 API(0–60분)의 범위를 팀에서 맞춰야 해요.

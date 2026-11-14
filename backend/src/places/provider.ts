@@ -42,14 +42,26 @@ export function plainText(s: string): string {
     .trim();
 }
 
-/** 지역 검색 mapx/mapy(WGS84 x 1e7 정수 문자열)를 도 단위로 바꾼다. 형식이 다르면 null. */
+/**
+ * 지역 검색 mapx/mapy를 도 단위로 바꾼다. 형식이 다르면 null.
+ * WGS84 x 1e7 정수 문자열("1270276368")과 도 단위 소수("127.0276368") 둘 다 받는다.
+ */
 export function localCoord(mapx: unknown, mapy: unknown): { latitude: number; longitude: number } | null {
-  const x = Number(mapx);
-  const y = Number(mapy);
-  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
-  const longitude = x / 1e7;
-  const latitude = y / 1e7;
+  const x = Number(typeof mapx === 'string' ? mapx.trim() : mapx);
+  const y = Number(typeof mapy === 'string' ? mapy.trim() : mapy);
+  if (!Number.isFinite(x) || !Number.isFinite(y) || x === 0 || y === 0) return null;
+  const longitude = Math.abs(x) <= 180 ? x : x / 1e7;
+  const latitude = Math.abs(y) <= 90 ? y : y / 1e7;
   return inKorea(latitude, longitude) ? { latitude, longitude } : null;
+}
+
+/** 외부 API 실패·버림 이유. 키나 검색어는 담지 않는다. */
+export interface PlaceWarning {
+  api: 'local' | 'geocode';
+  reason: 'http' | 'network' | 'bad_body' | 'dropped';
+  status?: number;
+  /** reason=dropped: 좌표·이름이 없어 버린 결과 수 */
+  count?: number;
 }
 
 interface LocalItem {
@@ -78,6 +90,7 @@ export class NaverPlaceProvider implements PlaceSearchProvider {
   constructor(
     private readonly cfg: NaverConfig,
     fetchImpl?: FetchLike,
+    private readonly onWarn: (w: PlaceWarning) => void = () => {},
   ) {
     this.fetch = fetchImpl ?? ((url, init) => globalThis.fetch(url, init));
   }
@@ -108,12 +121,16 @@ export class NaverPlaceProvider implements PlaceSearchProvider {
   }
 
   /** 실패하면 null */
-  private async getJson(url: URL, headers: Record<string, string>): Promise<unknown | null> {
+  private async getJson(api: PlaceWarning['api'], url: URL, headers: Record<string, string>): Promise<unknown | null> {
     try {
       const res = await this.fetch(url.toString(), { headers, signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS) });
-      if (!res.ok) return null;
+      if (!res.ok) {
+        this.onWarn({ api, reason: 'http', status: res.status });
+        return null;
+      }
       return await res.json();
     } catch {
+      this.onWarn({ api, reason: 'network' });
       return null;
     }
   }
@@ -122,19 +139,27 @@ export class NaverPlaceProvider implements PlaceSearchProvider {
     const url = new URL(this.cfg.searchLocalUrl);
     url.searchParams.set('query', query);
     url.searchParams.set('display', String(PLACE_RESULT_MAX));
-    const body = (await this.getJson(url, {
-      'X-Naver-Client-Id': this.cfg.searchClientId!,
-      'X-Naver-Client-Secret': this.cfg.searchClientSecret!,
-    })) as { items?: unknown } | null;
+    // NAVER API HUB(NCP, *.apigw.ntruss.com)는 NCP 헤더, 옛 개발자센터(openapi.naver.com)는 X-Naver 헤더를 쓴다.
+    const ncp = url.hostname.endsWith('.apigw.ntruss.com');
+    const headers: Record<string, string> = ncp
+      ? { 'X-NCP-APIGW-API-KEY-ID': this.cfg.searchClientId!, 'X-NCP-APIGW-API-KEY': this.cfg.searchClientSecret! }
+      : { 'X-Naver-Client-Id': this.cfg.searchClientId!, 'X-Naver-Client-Secret': this.cfg.searchClientSecret! };
+    const body = (await this.getJson('local', url, headers)) as { items?: unknown } | null;
+    if (body && !Array.isArray(body.items)) this.onWarn({ api: 'local', reason: 'bad_body' });
     if (!body || !Array.isArray(body.items)) return null;
 
     const places: Place[] = [];
+    let dropped = 0;
     for (const it of body.items as LocalItem[]) {
       const c = localCoord(it.mapx, it.mapy);
       const name = plainText(str(it.title));
-      if (!c || !name) continue;
+      if (!c || !name) {
+        dropped++;
+        continue;
+      }
       places.push({ name, address: str(it.roadAddress) || str(it.address), ...c, source: 'local' });
     }
+    if (dropped > 0) this.onWarn({ api: 'local', reason: 'dropped', count: dropped });
     return places.slice(0, PLACE_RESULT_MAX);
   }
 
@@ -142,7 +167,7 @@ export class NaverPlaceProvider implements PlaceSearchProvider {
     const url = new URL(this.cfg.geocodeUrl);
     url.searchParams.set('query', query);
     url.searchParams.set('count', String(PLACE_RESULT_MAX));
-    const body = (await this.getJson(url, {
+    const body = (await this.getJson('geocode', url, {
       'x-ncp-apigw-api-key-id': this.cfg.mapsApiKeyId!,
       'x-ncp-apigw-api-key': this.cfg.mapsApiKey!,
       Accept: 'application/json',

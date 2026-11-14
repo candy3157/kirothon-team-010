@@ -5,8 +5,8 @@ import { Icon } from '../components/Icon';
 import { MapView } from '../components/MapView';
 import { TheaterCard } from '../components/TheaterCard';
 import { TheaterDetail } from '../components/TheaterDetail';
-import { reasonBadges } from '../lib/recommend';
-import { departureLabel, hm } from '../lib/time';
+import { limitForDisplay, reasonBadges } from '../lib/recommend';
+import { departureLabel, hm, wholeMin } from '../lib/time';
 import { MODE, type SearchContext } from '../state';
 
 export interface ResultState {
@@ -37,7 +37,9 @@ export function Recommend({ ctx, result, onRetry, onEditConditions, onChangeMovi
   const sheetRef = useRef<HTMLDivElement>(null);
   const [insets, setInsets] = useState({ top: 72, bottom: 0 });
 
-  const data = result?.data;
+  // 지도와 목록은 상위 5곳만 보여 준다 (서버 결과는 그대로).
+  const raw = result?.data;
+  const data = useMemo(() => (raw ? limitForDisplay(raw) : raw), [raw]);
   const loading = !result || result.loading;
   const movie = ctx.movie!;
   const origin = ctx.origin!;
@@ -380,8 +382,8 @@ function ResultList({ result, loading, listRef, renderCards, onOpen, onRetry, on
                     {c.name}
                     <small>
                       {c.reason === 'all_showtimes_missed'
-                        ? `이동 ${c.travelMinutes}분 · 남은 회차에 모두 늦어요`
-                        : `최소 ${c.lowerBoundMinutes}분 거리 · 마지막 회차 ${hm(c.lastShowtimeStart)}`}
+                        ? `이동 ${wholeMin(c.travelMinutes ?? 0)}분 · 남은 회차에 모두 늦어요`
+                        : `최소 ${wholeMin(c.lowerBoundMinutes ?? 0)}분 거리 · 마지막 회차 ${hm(c.lastShowtimeStart)}`}
                     </small>
                   </div>
                 </div>

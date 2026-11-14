@@ -91,6 +91,11 @@ export function dayLabel(iso: string, now: Date = new Date()): string {
   return i < 0 ? '오늘' : label.slice(0, i);
 }
 
+/** 화면에 보일 분. 소수점은 버린다(반올림하지 않음). 예: 10.99 -> 10, -3.7 -> -3 */
+export function wholeMin(n: number): number {
+  return Math.trunc(n) || 0; // -0 방지
+}
+
 /** a - b (분) */
 export function diffMin(a: string, b: string): number {
   return Math.round((Date.parse(a) - Date.parse(b)) / 60_000);

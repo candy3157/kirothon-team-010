@@ -133,3 +133,47 @@ describe('naverMapScriptUrl', () => {
     expect(naverMapScriptUrl({ VITE_NAVER_MAP_KEY_ID: 'abc', VITE_NAVER_MAP_SCRIPT_URL: 'http://x.test/maps.js' })).toBeNull();
   });
 });
+
+describe('initialViewPoints', () => {
+  const origin = { latitude: 37.5, longitude: 127.0 };
+  const cin = (rank: number, lat: number) =>
+    ({ cinemaId: `c${rank}`, rank, location: { latitude: lat, longitude: 127.0 } }) as unknown as RankedCinema;
+
+  it('순위 1~5위 위치만 준다 (순서와 무관)', async () => {
+    const { initialViewPoints } = await import('./recommend');
+    const list = [7, 3, 1, 6, 2, 5, 4].map((r) => cin(r, 37.5 + r / 100));
+    const pts = initialViewPoints(origin, list, []);
+    expect(pts.map((p) => Math.round((p.latitude - 37.5) * 100))).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it('추천이 없으면 경로 미확인 중 가까운 곳', async () => {
+    const { initialViewPoints } = await import('./recommend');
+    const far = { cinemaId: 'f', location: { latitude: 35.1, longitude: 129.0 } };
+    const near = { cinemaId: 'n', location: { latitude: 37.51, longitude: 127.0 } };
+    const pts = initialViewPoints(origin, [], [far, near] as never, 1);
+    expect(pts).toEqual([near.location]);
+  });
+});
+
+describe('wholeMin', () => {
+  it('소수점을 버린다 (반올림하지 않음)', async () => {
+    const { wholeMin } = await import('./time');
+    expect(wholeMin(10.099133333333333)).toBe(10);
+    expect(wholeMin(10.99)).toBe(10);
+    expect(wholeMin(-3.7)).toBe(-3);
+    expect(Object.is(wholeMin(-0.4), 0)).toBe(true);
+  });
+});
+
+describe('limitForDisplay', () => {
+  it('추천은 순위 1~5위, 다른 구역도 5곳까지만', async () => {
+    const { limitForDisplay } = await import('./recommend');
+    const ranked = [8, 2, 6, 1, 4, 3, 7, 5].map((rank) => ({ cinemaId: `c${rank}`, rank }) as unknown as RankedCinema);
+    const extra = Array.from({ length: 9 }, (_, i) => ({ cinemaId: `x${i}` }));
+    const out = limitForDisplay({ meta: {}, cinemas: ranked, unroutableCinemas: extra, unreachableCinemas: extra });
+    expect(out.cinemas.map((c) => c.rank)).toEqual([1, 2, 3, 4, 5]);
+    expect(out.unroutableCinemas).toHaveLength(5);
+    expect(out.unreachableCinemas).toHaveLength(5);
+    expect(ranked).toHaveLength(8); // 원본은 그대로
+  });
+});

@@ -20,7 +20,7 @@ interface Call {
 function fakeFetch(handlers: { local?: unknown | Error; geocode?: unknown | Error }, calls: Call[] = []): FetchLike {
   return async (url, init) => {
     calls.push({ url, headers: init.headers });
-    const h = url.includes('search/local') ? handlers.local : handlers.geocode;
+    const h = /search\/(v1\/)?local/.test(url) ? handlers.local : handlers.geocode;
     if (h instanceof Error) throw h;
     if (h === undefined) return { ok: false, status: 500, json: async () => ({}) };
     return { ok: true, status: 200, json: async () => h };
@@ -49,6 +49,7 @@ describe('장소 검색 도우미', () => {
   });
   it('mapx/mapy(1e7배 정수)를 도로 바꾸고, 한국 밖 좌표는 버린다', () => {
     expect(localCoord('1270276368', '374979502')).toEqual({ longitude: 127.0276368, latitude: 37.4979502 });
+    expect(localCoord('127.0276368', '37.4979502')).toEqual({ longitude: 127.0276368, latitude: 37.4979502 });
     expect(localCoord('311277', '552097')).toBeNull(); // 옛 KATECH 형식
     expect(localCoord('', '')).toBeNull();
   });
@@ -65,7 +66,17 @@ describe('NaverPlaceProvider', () => {
     });
     expect(calls).toHaveLength(1);
     expect(calls[0]!.url).not.toContain('sid');
+    // 기본 주소는 NAVER API HUB(NCP) → NCP 헤더
+    expect(calls[0]!.headers['X-NCP-APIGW-API-KEY-ID']).toBe('sid');
+    expect(calls[0]!.headers['X-Naver-Client-Id']).toBeUndefined();
+  });
+
+  it('옛 개발자센터 주소면 X-Naver 헤더를 쓴다', async () => {
+    const calls: Call[] = [];
+    const cfg = loadNaverConfig({ ...KEYS, NAVER_SEARCH_LOCAL_URL: 'https://openapi.naver.com/v1/search/local.json' });
+    await new NaverPlaceProvider(cfg, fakeFetch({ local: LOCAL_OK }, calls)).search('강남역');
     expect(calls[0]!.headers['X-Naver-Client-Id']).toBe('sid');
+    expect(calls[0]!.headers['X-NCP-APIGW-API-KEY-ID']).toBeUndefined();
   });
 
   it('지역 검색이 비면 Geocoding으로 찾는다', async () => {

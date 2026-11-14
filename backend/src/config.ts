@@ -31,7 +31,7 @@ export function parseOrigins(raw: string | undefined): string[] {
   });
 }
 
-export type ShowtimeProviderName = 'sample';
+export type ShowtimeProviderName = 'sample' | 'real';
 export type RouteProviderName = 'mock';
 
 /** 네이버 API 설정. 키는 서버에서만 쓰고 응답·로그에 담지 않는다. 값이 없으면 undefined. */
@@ -46,7 +46,11 @@ export interface NaverConfig {
   mapsApiKey?: string;
 }
 
-export const DEFAULT_NAVER_SEARCH_LOCAL_URL = 'https://openapi.naver.com/v1/search/local.json';
+/**
+ * 네이버 지역 검색. NCP 콘솔(NAVER API HUB)에서 받은 키는 이 주소를 쓴다.
+ * 옛 개발자센터 키는 https://openapi.naver.com/v1/search/local.json (2027-06-30까지).
+ */
+export const DEFAULT_NAVER_SEARCH_LOCAL_URL = 'https://naverapihub.apigw.ntruss.com/search/v1/local';
 export const DEFAULT_NCP_GEOCODE_URL = 'https://maps.apigw.ntruss.com/map-geocode/v2/geocode';
 
 export interface AppConfig {
@@ -56,6 +60,8 @@ export interface AppConfig {
   showtimeProvider: ShowtimeProviderName;
   routeProvider: RouteProviderName;
   naver: NaverConfig;
+  /** showtimeProvider가 'real'일 때만 있음 */
+  realData?: RealDataConfig;
 }
 
 const opt = (v: string | undefined): string | undefined => (v && v.trim() !== '' ? v.trim() : undefined);
@@ -83,14 +89,40 @@ export function loadNaverConfig(env: NodeJS.ProcessEnv = process.env): NaverConf
   };
 }
 
+export const DEFAULT_TMDB_API_URL = 'https://api.themoviedb.org/3';
+export const DEFAULT_TMDB_IMAGE_URL = 'https://image.tmdb.org/t/p/w342';
+/** backend/ 기준 상대 경로 */
+export const DEFAULT_CINEMA_CSV_PATH = 'data/cinemas.csv';
+
+/** SHOWTIME_PROVIDER=real 설정. 키 값은 응답·로그에 담지 않는다. */
+export interface RealDataConfig {
+  tmdb: { apiUrl: string; imageUrl: string; apiKey: string };
+  /** 영화관 CSV 경로(절대 경로 또는 backend/ 기준 상대 경로) */
+  cinemaCsvPath: string;
+}
+
+export function loadRealDataConfig(env: NodeJS.ProcessEnv = process.env): RealDataConfig {
+  const apiKey = opt(env.TMDB_API_KEY);
+  if (!apiKey) throw new Error('SHOWTIME_PROVIDER=real에는 TMDB_API_KEY가 필요합니다 (backend/.env).');
+  return {
+    tmdb: {
+      apiUrl: httpsUrl('TMDB_API_URL', env.TMDB_API_URL, DEFAULT_TMDB_API_URL),
+      imageUrl: httpsUrl('TMDB_IMAGE_URL', env.TMDB_IMAGE_URL, DEFAULT_TMDB_IMAGE_URL),
+      apiKey,
+    },
+    cinemaCsvPath: opt(env.CINEMA_CSV_PATH) ?? DEFAULT_CINEMA_CSV_PATH,
+  };
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const showtimeProvider = (env.SHOWTIME_PROVIDER?.trim() || 'sample') as string;
   const routeProvider = (env.ROUTE_PROVIDER?.trim() || 'mock') as string;
-  if (showtimeProvider !== 'sample') {
-    throw new Error(`지원하지 않는 SHOWTIME_PROVIDER: ${showtimeProvider} (사용 가능: sample)`);
+  // 값은 오류에 넣지 않는다. 키를 잘못된 줄에 넣었을 때 콘솔에 키가 찍히는 것을 막는다.
+  if (showtimeProvider !== 'sample' && showtimeProvider !== 'real') {
+    throw new Error('SHOWTIME_PROVIDER 값이 올바르지 않습니다 (사용 가능: sample, real). backend/.env를 확인하세요.');
   }
   if (routeProvider !== 'mock') {
-    throw new Error(`지원하지 않는 ROUTE_PROVIDER: ${routeProvider} (사용 가능: mock)`);
+    throw new Error('ROUTE_PROVIDER 값이 올바르지 않습니다 (사용 가능: mock). backend/.env를 확인하세요.');
   }
   const port = Number(env.PORT ?? 3001);
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('PORT가 올바르지 않습니다.');
@@ -101,6 +133,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     showtimeProvider,
     routeProvider,
     naver: loadNaverConfig(env),
+    ...(showtimeProvider === 'real' ? { realData: loadRealDataConfig(env) } : {}),
   };
 }
 

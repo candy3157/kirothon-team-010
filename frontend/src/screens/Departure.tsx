@@ -65,7 +65,8 @@ export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
   }, [q]);
 
   const local = useMemo<Suggestion[]>(() => (q.trim() ? PLACES.filter((p) => p.label.includes(q.trim())) : PLACES), [q]);
-  const suggestions = remote.status === 'ok' ? remote.items : local;
+  // 서버 결과가 비면 기본 장소 중 일치하는 것을 보여 준다.
+  const suggestions = remote.status === 'ok' && remote.items.length > 0 ? remote.items : local;
 
   const past = ctx.departure !== 'now' && isPastTime(ctx.departure);
   const beyond = ctx.departure !== 'now' && isBeyondWindow(ctx.departure);
