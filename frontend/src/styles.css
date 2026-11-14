@@ -319,3 +319,12 @@ input[type='search']::-webkit-search-cancel-button {
   background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2' stroke-linecap='round'><path d='M6 6.3c4 3.7 8 7.6 12 11.5M17.8 6c-3.9 4-7.8 8-11.7 12.1'/></svg>") center / contain no-repeat;
 }
 input[type='search']::-webkit-search-cancel-button:hover { opacity: 1; }
+
+/* 상영 전 도착 여유 (−/+ 칸) */
+.opt-box { border: 1px solid var(--line); border-radius: 4px; padding: 4px 14px; }
+.opt-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; font-size: 14px; }
+.stepper { display: flex; align-items: center; gap: 10px; }
+.stepper b { min-width: 40px; text-align: center; font-variant-numeric: tabular-nums; }
+.stepper button { width: 30px; height: 30px; border-radius: 3px; border: 1px solid var(--line); background: none; transition: transform 0.14s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.stepper button:active:not(:disabled) { transform: scale(0.92); }
+.stepper button:disabled { opacity: 0.35; cursor: not-allowed; }

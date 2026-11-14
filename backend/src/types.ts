@@ -139,6 +139,8 @@ export interface RecommendationRequest {
   /** 오프셋을 포함한 ISO 8601. 생략하면 요청 시점. */
   departureTime?: string;
   sortBy?: SortBy;
+  /** 상영 전 도착 여유(분). 생략하면 서버 기본값 BUFFER_MINUTES. */
+  bufferMinutes?: number;
 }
 
 export interface Policy {

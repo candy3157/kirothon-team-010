@@ -103,6 +103,31 @@ describe('POST /api/recommendations', () => {
     expect(res.json().code).toBe('departure_out_of_range');
   });
 
+  it('bufferMinutes(상영 전 도착 여유)로 도착 가능 회차가 바뀐다', async () => {
+    const rep = async (over: Record<string, unknown>) => {
+      const res = await post(make(), body({ sortBy: 'earliest', ...over }));
+      expect(res.statusCode).toBe(200);
+      const json = res.json();
+      await app.close();
+      const g = json.cinemas.find((c: { cinemaId: string }) => c.cinemaId === 'cin_gangnam');
+      const s = g.showtimes.find((x: { showtimeId: string }) => x.showtimeId === g.representativeShowtimeId);
+      return { time: s.businessTime as string, buffer: json.meta.policy.bufferMinutes as number };
+    };
+    // 강남: 14:00 출발 + 25분 = 14:25 도착. 회차 14:30, 14:40
+    expect(await rep({})).toEqual({ time: '14:40', buffer: 10 }); // 기본 10분
+    expect(await rep({ bufferMinutes: 0 })).toEqual({ time: '14:30', buffer: 0 });
+    expect(await rep({ bufferMinutes: 15 })).toEqual({ time: '14:40', buffer: 15 });
+  });
+
+  it('범위 밖이거나 정수가 아닌 bufferMinutes는 400', async () => {
+    for (const v of [-5, 61, 7.5, '10']) {
+      const res = await post(make(), body({ bufferMinutes: v }));
+      expect(res.statusCode).toBe(400);
+      expect(res.json().details[0].field).toBe('bufferMinutes');
+      await app.close();
+    }
+  });
+
   it('본문이 너무 크면 413', async () => {
     const res = await post(make(), body({ padding: 'x'.repeat(5000) }));
     expect(res.statusCode).toBe(413);

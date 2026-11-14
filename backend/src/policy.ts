@@ -4,8 +4,12 @@ import type { TransportMode } from './types.js';
  * 서버 정책값. 요청에서 받지 않는다. 응답 meta.policy로만 알린다.
  */
 
-/** 입장 준비시간(분). 도착 후 이만큼 지나야 입장 준비 완료. */
+/** 입장 준비시간(분) 기본값. 도착 후 이만큼 지나야 입장 준비 완료. 요청 bufferMinutes가 없을 때 쓴다. */
 export const BUFFER_MINUTES = 10;
+
+/** 요청으로 받을 수 있는 bufferMinutes 범위(분). 프론트의 "상영 전 도착 여유" −/+ 설정. */
+export const MIN_BUFFER_MINUTES = 0;
+export const MAX_BUFFER_MINUTES = 60;
 
 /** balanced 정렬: travel + WAIT_WEIGHT * wait */
 export const WAIT_WEIGHT = 0.35;

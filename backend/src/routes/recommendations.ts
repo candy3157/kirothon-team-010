@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { sendError } from '../errors.js';
+import { MAX_BUFFER_MINUTES, MIN_BUFFER_MINUTES } from '../policy.js';
 import { recommend, RecommendError, resort, type RecommendDeps } from '../services/recommend.js';
 import type { Coordinates, ErrorDetail, RecommendationRequest, SortBy, TransportMode } from '../types.js';
 import { SORT_BYS, TRANSPORT_MODES } from '../types.js';
@@ -28,7 +29,7 @@ const MOVIE_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
 const RESULT_ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
 const OFFSET_ISO_RE = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,9})?)?(Z|[+-]\d{2}:\d{2})$/;
 
-const REQUEST_KEYS = new Set(['movieId', 'origin', 'transportMode', 'departureTime', 'sortBy']);
+const REQUEST_KEYS = new Set(['movieId', 'origin', 'transportMode', 'departureTime', 'sortBy', 'bufferMinutes']);
 const ORIGIN_KEYS = new Set(['latitude', 'longitude']);
 
 const isPlainObject = (v: unknown): v is Record<string, unknown> =>
@@ -122,6 +123,16 @@ export function parseRecommendationRequest(
   if (body.sortBy !== undefined && !isSortBy(body.sortBy)) {
     details.push({ field: 'sortBy', issue: 'sortBy는 balanced, travel, earliest 중 하나여야 합니다.' });
   }
+  const buffer = body.bufferMinutes;
+  if (
+    buffer !== undefined &&
+    (typeof buffer !== 'number' || !Number.isInteger(buffer) || buffer < MIN_BUFFER_MINUTES || buffer > MAX_BUFFER_MINUTES)
+  ) {
+    details.push({
+      field: 'bufferMinutes',
+      issue: `bufferMinutes는 ${MIN_BUFFER_MINUTES} 이상 ${MAX_BUFFER_MINUTES} 이하의 정수여야 합니다.`,
+    });
+  }
 
   if (details.length > 0 || !origin) return { ok: false, details };
   return {
@@ -132,6 +143,7 @@ export function parseRecommendationRequest(
       transportMode: body.transportMode as TransportMode,
       ...(departureTime !== undefined ? { departureTime } : {}),
       ...(body.sortBy !== undefined ? { sortBy: body.sortBy as SortBy } : {}),
+      ...(buffer !== undefined ? { bufferMinutes: buffer as number } : {}),
     },
   };
 }

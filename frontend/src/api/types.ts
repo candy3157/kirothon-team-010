@@ -31,6 +31,8 @@ export interface RecommendationRequest {
   transportMode: TransportMode;
   departureTime?: string;
   sortBy?: SortBy;
+  /** 상영 전 도착 여유(분, 0–60). 생략하면 서버 기본 10분 (API 1.2.0) */
+  bufferMinutes?: number;
 }
 
 export type NoticeCode =
