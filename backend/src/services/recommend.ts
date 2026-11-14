@@ -79,8 +79,9 @@ const UNROUTABLE_MESSAGE = '경로를 확인하지 못했습니다. 도착 가�
 
 const DEFAULT_ROUTE_CONCURRENCY = 8;
 
-function defaultDirectionsUrl(cinema: Cinema): string {
-  return `https://example.com/directions?dest=${encodeURIComponent(cinema.cinemaId)}`;
+/** 길찾기 링크는 출발지·이동수단을 아는 프론트가 만든다(네이버 지도). 서버는 기본으로 비워 둔다. */
+function defaultDirectionsUrl(_cinema: Cinema): string | null {
+  return null;
 }
 
 /** 동시 실행 수를 제한한 map. 결과 순서는 입력 순서를 유지한다. */

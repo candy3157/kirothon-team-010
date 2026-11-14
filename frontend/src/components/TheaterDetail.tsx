@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Coordinates, RankedCinema, ResultMeta, Showtime, UnroutableCinema, UnroutableShowtime } from '../api/types';
-import { distanceKm, kakaoDirectionsUrl } from '../lib/geo';
+import { distanceKm, naverDirectionsUrl } from '../lib/geo';
 import { representative, unarrivableReason } from '../lib/recommend';
 import { addMinISO, clockTime, dayLabel, hm, pad2, wholeMin } from '../lib/time';
 import { MODE } from '../state';
@@ -9,7 +9,8 @@ import { Icon } from './Icon';
 
 interface Props {
   cinema: RankedCinema | UnroutableCinema;
-  origin: Coordinates;
+  /** 출발지. label은 길찾기 출발 이름으로 쓴다. */
+  origin: Coordinates & { label?: string };
   meta: ResultMeta;
   movieTitle: string;
   runtimeMinutes?: number | null;
@@ -36,7 +37,8 @@ export function TheaterDetail({ cinema: c, origin, meta, movieTitle, runtimeMinu
           <b>{c.name}</b>까지 길찾기를 엽니다.
         </>
       ),
-      url: (ranked && c.directionsUrl) || kakaoDirectionsUrl(c.name, c.location),
+      // 출발지·이동수단을 아는 프론트가 네이버 길찾기 주소를 만든다.
+      url: naverDirectionsUrl(origin, { ...c.location, name: c.name }, ranked ? c.transportMode : meta.transportMode),
     });
 
   const shows = c.showtimes.filter((s) => Date.parse(s.startTime) > now); // 이미 시작한 회차는 숨김

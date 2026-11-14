@@ -177,3 +177,23 @@ describe('limitForDisplay', () => {
     expect(ranked).toHaveLength(8); // 원본은 그대로
   });
 });
+
+describe('naverDirectionsUrl', () => {
+  it('출발·도착 경도,위도,이름과 이동수단을 넣는다', async () => {
+    const { naverDirectionsUrl } = await import('./geo');
+    const url = naverDirectionsUrl(
+      { latitude: 37.4979, longitude: 127.0276, label: '강남역' },
+      { latitude: 37.5133, longitude: 127.1001, name: 'CGV 잠실, 롯데월드/몰' },
+      'transit',
+    );
+    expect(url).toBe(
+      `https://map.naver.com/p/directions/127.0276,37.4979,${encodeURIComponent('강남역')},,/127.1001,37.5133,${encodeURIComponent('CGV 잠실 롯데월드 몰')},,/-/transit`,
+    );
+  });
+  it('출발 이름이 없으면 "출발"', async () => {
+    const { naverDirectionsUrl } = await import('./geo');
+    expect(naverDirectionsUrl({ latitude: 1, longitude: 2 }, { latitude: 3, longitude: 4, name: 'x' }, 'car')).toContain(
+      `2,1,${encodeURIComponent('출발')},,/`,
+    );
+  });
+});

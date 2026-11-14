@@ -21,7 +21,21 @@ export function offsetKm(origin: Coordinates, p: Coordinates): { x: number; y: n
   };
 }
 
-/** 길찾기 링크가 없을 때 쓰는 카카오맵 웹 길찾기 */
-export function kakaoDirectionsUrl(name: string, at: Coordinates): string {
-  return `https://map.kakao.com/link/to/${encodeURIComponent(name)},${at.latitude},${at.longitude}`;
+export type DirectionsMode = 'car' | 'transit' | 'walk';
+
+/** 이름 안의 쉼표·슬래시는 네이버 길찾기 주소의 구분자와 겹쳐서 공백으로 바꾼다. */
+const pathName = (s: string) => encodeURIComponent(s.replace(/[,/]/g, ' ').replace(/\s+/g, ' ').trim() || '위치');
+
+/**
+ * 네이버 지도 웹 길찾기.
+ * 형식: https://map.naver.com/p/directions/{경도},{위도},{이름},,/{경도},{위도},{이름},,/-/{car|transit|walk}
+ * 네이버 공식 문서에 없는 웹 주소 규칙이다. 네이버가 바꾸면 깨질 수 있으니 바뀌면 이 함수만 고친다.
+ */
+export function naverDirectionsUrl(
+  from: Coordinates & { label?: string },
+  to: Coordinates & { name: string },
+  mode: DirectionsMode,
+): string {
+  const pt = (p: Coordinates, name: string) => `${p.longitude},${p.latitude},${pathName(name)},,`;
+  return `https://map.naver.com/p/directions/${pt(from, from.label ?? '출발')}/${pt(to, to.name)}/-/${mode}`;
 }
