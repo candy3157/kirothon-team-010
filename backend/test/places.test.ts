@@ -49,6 +49,7 @@ describe('장소 검색 도우미', () => {
   });
   it('mapx/mapy(1e7배 정수)를 도로 바꾸고, 한국 밖 좌표는 버린다', () => {
     expect(localCoord('1270276368', '374979502')).toEqual({ longitude: 127.0276368, latitude: 37.4979502 });
+    expect(localCoord('127.0276368', '37.4979502')).toEqual({ longitude: 127.0276368, latitude: 37.4979502 });
     expect(localCoord('311277', '552097')).toBeNull(); // 옛 KATECH 형식
     expect(localCoord('', '')).toBeNull();
   });
