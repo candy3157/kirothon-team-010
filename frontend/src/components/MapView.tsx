@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Coordinates, RankedCinema, UnroutableCinema } from '../api/types';
 import { distanceKm, offsetKm } from '../lib/geo';
 import { initialViewPoints, representative } from '../lib/recommend';
-import { loadNaverMaps, naverMapScriptUrl, onNaverAuthFailure, type NaverMapState } from '../lib/naverMap';
+import { hasNaverAuthFailed, loadNaverMaps, naverMapScriptUrl, onNaverAuthFailure, type NaverMapState } from '../lib/naverMap';
 import { clockTime, pad2 } from '../lib/time';
 import { Icon } from './Icon';
 
@@ -30,7 +30,7 @@ export function MapView(props: Props) {
     if (state !== 'loading') return;
     let alive = true;
     loadNaverMaps().then(
-      () => alive && setState('ready'),
+      () => alive && setState(hasNaverAuthFailed() ? 'fail' : 'ready'),
       () => alive && setState('fail'),
     );
     return () => {
@@ -40,7 +40,16 @@ export function MapView(props: Props) {
 
   useEffect(() => onNaverAuthFailure(() => setState('fail')), []);
 
-  return state === 'ready' ? <NaverMapView {...props} /> : <FakeMapView {...props} />;
+  return state === 'ready' ? <NaverMapView {...props} /> : (
+    <>
+      <FakeMapView {...props} />
+      {state === 'fail' && (
+        <div role="status" style={{ position: 'absolute', top: props.topInset + 14, left: 16, zIndex: 5, maxWidth: 'calc(100% - 90px)', padding: '8px 12px', background: '#222', color: '#fff', borderRadius: 8, fontSize: 12 }}>
+          {hasNaverAuthFailed() ? '지도 인증에 실패했습니다.' : '지도를 불러오지 못했습니다.'} 실제 지도 대신 위치 도식을 표시합니다.
+        </div>
+      )}
+    </>
+  );
 }
 
 /** 0x0 상자 안에 둔 마커 내용. 기존 .pin/.me CSS가 (0,0)을 기준으로 그려진다. */
@@ -86,12 +95,18 @@ function NaverMapView({ origin, cinemas, unroutable, selectedId, loading, topIns
     mapRef.current = map;
     const l = N.Event.addListener(map, 'dragend', () => cb.current.onDragged());
     return () => {
-      N.Event.removeListener(l);
-      markers.current.forEach((m) => m.setMap(null));
-      originMarker.current?.setMap(null);
-      map.destroy();
+      // 인증 실패 뒤에는 SDK가 내부 객체를 비운다. 해제 API를 호출하면
+      // React의 cleanup까지 실패해 추천 목록을 포함한 화면 전체가 사라진다.
+      if (!hasNaverAuthFailed()) {
+        N.Event.removeListener(l);
+        markers.current.forEach((m) => m.setMap(null));
+        originMarker.current?.setMap(null);
+        map.destroy();
+      }
       host.remove();
       mapRef.current = null;
+      markers.current = [];
+      originMarker.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

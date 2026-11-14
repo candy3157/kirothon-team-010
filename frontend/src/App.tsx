@@ -38,6 +38,7 @@ export default function App() {
         origin: { latitude: c.origin.latitude, longitude: c.origin.longitude },
         transportMode: c.transportMode,
         sortBy: 'earliest', // 가장 빨리 볼 수 있는 순
+        bufferMinutes: c.bufferMinutes,
         ...(c.departure !== 'now' ? { departureTime: departureISO(c.departure) } : {}),
       });
       if (seq === reqSeq.current) setResult({ key, loading: false, data });

@@ -19,6 +19,11 @@ let promise: Promise<any> | null = null;
 let authFailed = false;
 const authListeners = new Set<() => void>();
 
+/** 인증 실패 시 SDK 내부 객체도 해제되므로 이후 SDK 호출을 피한다. */
+export function hasNaverAuthFailed(): boolean {
+  return authFailed;
+}
+
 /** 스크립트 주소. 키가 없거나 https가 아니면 null. */
 export function naverMapScriptUrl(
   env: { VITE_NAVER_MAP_SCRIPT_URL?: string; VITE_NAVER_MAP_KEY_ID?: string } = import.meta.env,
@@ -47,6 +52,7 @@ export function onNaverAuthFailure(fn: () => void): () => void {
 
 /** window.naver.maps를 돌려준다. 키 없음·로드 실패·시간 초과면 reject. */
 export function loadNaverMaps(): Promise<any> {
+  if (authFailed) return Promise.reject(new Error('네이버 지도 인증에 실패했습니다.'));
   if (promise) return promise;
   const src = naverMapScriptUrl();
   if (!src) return Promise.reject(new Error('VITE_NAVER_MAP_KEY_ID가 없습니다.'));
@@ -64,7 +70,8 @@ export function loadNaverMaps(): Promise<any> {
     const timer = setTimeout(() => reject(new Error('네이버 지도 로드 시간 초과')), LOAD_TIMEOUT_MS);
     s.onload = () => {
       clearTimeout(timer);
-      if (window.naver?.maps) resolve(window.naver.maps);
+      if (authFailed) reject(new Error('네이버 지도 인증에 실패했습니다.'));
+      else if (window.naver?.maps) resolve(window.naver.maps);
       else reject(new Error('네이버 지도 객체가 없습니다.'));
     };
     s.onerror = () => {
