@@ -4,6 +4,8 @@
 
 **Demo:** 데모 영상 링크 준비 중
 
+**발표자료:** [PRESENTATION.pdf](PRESENTATION.pdf)
+
 ---
 
 ## 1. 문제 정의
