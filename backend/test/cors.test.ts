@@ -3,6 +3,7 @@ import { buildApp } from '../src/app.js';
 import { loadConfig, parseOrigins } from '../src/config.js';
 
 const ALLOWED = 'http://localhost:5173';
+const ALLOWED_LOOPBACK = 'http://127.0.0.1:5173';
 const DENIED = 'http://evil.example';
 
 describe('CORS', () => {
@@ -11,6 +12,12 @@ describe('CORS', () => {
     const res = await app.inject({ method: 'GET', url: '/api/health', headers: { origin: ALLOWED } });
     expect(res.statusCode).toBe(200);
     expect(res.headers['access-control-allow-origin']).toBe(ALLOWED);
+  });
+
+  it('127.0.0.1:5173도 기본으로 허용한다', async () => {
+    const app = buildApp();
+    const res = await app.inject({ method: 'GET', url: '/api/health', headers: { origin: ALLOWED_LOOPBACK } });
+    expect(res.headers['access-control-allow-origin']).toBe(ALLOWED_LOOPBACK);
   });
 
   it('허용되지 않은 origin에는 CORS 헤더가 없다(와일드카드 아님)', async () => {
@@ -85,7 +92,7 @@ describe('loadConfig', () => {
   it('기본값은 127.0.0.1, 5173 origin, sample/mock', () => {
     const c = loadConfig({});
     expect(c.host).toBe('127.0.0.1');
-    expect(c.frontendOrigins).toEqual([ALLOWED]);
+    expect(c.frontendOrigins).toEqual([ALLOWED, ALLOWED_LOOPBACK]);
     expect(c.showtimeProvider).toBe('sample');
     expect(c.routeProvider).toBe('mock');
   });
@@ -93,6 +100,24 @@ describe('loadConfig', () => {
   it('쉼표로 여러 origin을 받는다', () => {
     const c = loadConfig({ FRONTEND_ORIGIN: 'http://localhost:5173, https://a.example.com/' });
     expect(c.frontendOrigins).toEqual(['http://localhost:5173', 'https://a.example.com']);
+  });
+
+  it('네이버 API 값은 .env에서 읽고, 없으면 기본 주소와 빈 키', () => {
+    const empty = loadConfig({});
+    expect(empty.naver.searchLocalUrl).toBe('https://openapi.naver.com/v1/search/local.json');
+    expect(empty.naver.geocodeUrl).toBe('https://maps.apigw.ntruss.com/map-geocode/v2/geocode');
+    expect(empty.naver.searchClientId).toBeUndefined();
+    expect(empty.naver.mapsApiKey).toBeUndefined();
+
+    const set = loadConfig({ NAVER_SEARCH_CLIENT_ID: ' id ', NCP_MAPS_API_KEY: 'k', NCP_GEOCODE_URL: 'https://x.example.com/geo' });
+    expect(set.naver.searchClientId).toBe('id');
+    expect(set.naver.mapsApiKey).toBe('k');
+    expect(set.naver.geocodeUrl).toBe('https://x.example.com/geo');
+  });
+
+  it('네이버 API 주소는 https만 허용', () => {
+    expect(() => loadConfig({ NCP_GEOCODE_URL: 'http://x.example.com' })).toThrow();
+    expect(() => loadConfig({ NAVER_SEARCH_LOCAL_URL: 'not a url' })).toThrow();
   });
 
   it('구현되지 않은 공급자 이름은 오류', () => {

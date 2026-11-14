@@ -1,6 +1,7 @@
 import type {
   ErrorResponse,
   MovieListResponse,
+  PlaceListResponse,
   RecommendationRequest,
   RecommendationResult,
   SortBy,
@@ -54,6 +55,10 @@ export const api = {
       body: JSON.stringify(body),
       signal,
     });
+  },
+  /** 출발지 장소·주소 검색 (서버가 네이버 API를 부름) */
+  searchPlaces(query: string, signal?: AbortSignal) {
+    return request<PlaceListResponse>(`/api/places?query=${encodeURIComponent(query.trim())}`, { signal });
   },
   getRecommendation(resultId: string, sortBy?: SortBy) {
     const q = sortBy ? `?sortBy=${sortBy}` : '';
