@@ -1,6 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import { todayInSeoul, type ShowtimeProvider } from '../data/provider.js';
 import { sendError } from '../errors.js';
+import { MAX_ADVANCE_DAYS } from '../policy.js';
+import { isWithinBookingWindow } from '../time.js';
 import { checkAvailability } from '../services/availability.js';
 import type { ErrorDetail, MovieListResponse } from '../types.js';
 
@@ -86,11 +88,11 @@ export function registerMovieRoutes(app: FastifyInstance, deps: MovieRouteDeps):
     }
 
     const at = now();
-    if (requestedDate !== undefined && requestedDate !== todayInSeoul(at)) {
-      return sendError(reply, req, 400, 'unsupported_date', '현재는 오늘 영업일만 조회할 수 있습니다.');
+    if (requestedDate !== undefined && !isWithinBookingWindow(requestedDate, at, MAX_ADVANCE_DAYS)) {
+      return sendError(reply, req, 400, 'unsupported_date', `오늘부터 ${MAX_ADVANCE_DAYS + 1}일 안의 날짜만 조회할 수 있습니다.`);
     }
 
-    const { movieFound, availability } = await checkAvailability(deps.provider, movieId, at);
+    const { movieFound, availability } = await checkAvailability(deps.provider, movieId, at, requestedDate ?? todayInSeoul(at));
     if (!movieFound) {
       return sendError(reply, req, 404, 'movie_not_found', '영화를 찾을 수 없습니다.');
     }

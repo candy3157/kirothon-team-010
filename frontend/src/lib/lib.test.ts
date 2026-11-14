@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { RankedCinema, Showtime } from '../api/types';
 import { reasonBadges, representative, unarrivableReason } from './recommend';
-import { departureISO, hm, isPastTime, suggestTime, todayKST } from './time';
+import { dayLabel, departureISO, departureLabel, hm, isBeyondWindow, isPastTime, suggestTime, todayKST } from './time';
 
 const st = (id: string, start: string, verdict: Showtime['verdict'], wait: number | null, spare: number | null): Showtime => ({
   showtimeId: id,
@@ -32,20 +32,29 @@ const cinema = (id: string, travel: number, rep: Showtime): RankedCinema => ({
 });
 
 describe('time', () => {
-  const now = new Date('2026-11-14T05:12:00Z'); // 서울 14:12
+  const now = new Date('2026-11-14T05:12:00Z'); // 서울 14:12 (토)
   it('서울 시각으로 표시한다', () => {
     expect(hm('2026-11-14T14:40:00+09:00')).toBe('14:40');
     expect(todayKST(now)).toBe('2026-11-14');
   });
-  it('오늘 출발 시각을 +09:00 ISO로 만든다', () => {
-    expect(departureISO('19:30', now)).toBe('2026-11-14T19:30:00+09:00');
+  it('날짜·시간 입력값을 +09:00 ISO로 만든다', () => {
+    expect(departureISO('2026-11-16T19:30')).toBe('2026-11-16T19:30:00+09:00');
   });
-  it('지난 시각을 알아본다', () => {
-    expect(isPastTime('13:00', now)).toBe(true);
-    expect(isPastTime('15:00', now)).toBe(false);
+  it('지난 시각과 7일 범위 밖을 알아본다', () => {
+    expect(isPastTime('2026-11-14T13:00', now)).toBe(true);
+    expect(isPastTime('2026-11-15T09:00', now)).toBe(false);
+    expect(isBeyondWindow('2026-11-20T23:00', now)).toBe(false);
+    expect(isBeyondWindow('2026-11-21T00:10', now)).toBe(true);
   });
-  it('추천 시각은 10분 단위로 올린다', () => {
-    expect(suggestTime(30, now)).toBe('14:50');
+  it('추천 시각은 10분 단위로 올리고 자정을 넘길 수 있다', () => {
+    expect(suggestTime(30, now)).toBe('2026-11-14T14:50');
+    expect(suggestTime(30, new Date('2026-11-14T14:50:00Z'))).toBe('2026-11-15T00:20');
+  });
+  it('출발 표시: 오늘 / 내일 / 날짜(요일)', () => {
+    expect(departureLabel('2026-11-14T19:30', now)).toBe('19:30');
+    expect(departureLabel('2026-11-15T19:30', now)).toBe('내일 19:30');
+    expect(departureLabel('2026-11-17T19:30:00+09:00', now)).toBe('11/17(화) 19:30');
+    expect(dayLabel('2026-11-14T19:30:00+09:00', now)).toBe('오늘');
   });
 });
 

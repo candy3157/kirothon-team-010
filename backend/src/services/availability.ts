@@ -77,10 +77,11 @@ export async function checkAvailability(
   provider: ShowtimeProvider,
   movieId: string,
   now: Date = new Date(),
+  businessDate?: string,
 ): Promise<AvailabilityResult> {
   let result: MovieShowtimesResult;
   try {
-    result = await provider.getMovieShowtimes(movieId);
+    result = await provider.getMovieShowtimes(movieId, businessDate);
   } catch {
     return evaluateAvailability(
       movieId,
@@ -92,7 +93,7 @@ export async function checkAvailability(
         movie: null,
         cinemas: [],
         showtimes: [],
-        businessDate: new Date(now.getTime() + 9 * 3600_000).toISOString().slice(0, 10),
+        businessDate: businessDate ?? new Date(now.getTime() + 9 * 3600_000).toISOString().slice(0, 10),
       },
       now,
     );

@@ -4,7 +4,7 @@ import { Icon } from '../components/Icon';
 import { Poster } from '../components/Poster';
 import { Steps } from '../components/Steps';
 import { PLACES } from '../lib/places';
-import { isPastTime, suggestTime } from '../lib/time';
+import { dateInputMax, dateInputMin, isBeyondWindow, isPastTime, MAX_ADVANCE_DAYS, suggestTime } from '../lib/time';
 import { MODE, type SearchContext } from '../state';
 
 interface Props {
@@ -24,7 +24,8 @@ export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
   const suggestions = useMemo(() => (q.trim() ? PLACES.filter((p) => p.label.includes(q.trim())) : PLACES), [q]);
 
   const past = ctx.departure !== 'now' && isPastTime(ctx.departure);
-  const valid = !!(ctx.movie && ctx.origin && ctx.transportMode) && !past;
+  const beyond = ctx.departure !== 'now' && isBeyondWindow(ctx.departure);
+  const valid = !!(ctx.movie && ctx.origin && ctx.transportMode) && !past && !beyond;
 
   const useGeo = () => {
     if (!navigator.geolocation) return setGeo('fail');
@@ -134,9 +135,9 @@ export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
           ))}
         </div>
 
-        {/* 출발 시각 (오늘만) */}
+        {/* 출발 시각 (날짜 + 시간, 오늘부터 7일) */}
         <i className="sp sp-c" aria-hidden="true" />
-        <div className="label">출발 시각 · 오늘</div>
+        <div className="label">출발 시각</div>
         <div className="chips">
           <button className="chip" aria-pressed={ctx.departure === 'now'} onClick={() => onChange({ departure: 'now' })}>
             지금 출발
@@ -151,14 +152,17 @@ export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
         </div>
         {ctx.departure !== 'now' && (
           <input
-            type="time"
+            type="datetime-local"
             className="time-input"
-            aria-label="출발 시간"
+            aria-label="출발 날짜와 시간"
+            min={dateInputMin()}
+            max={dateInputMax()}
             value={ctx.departure}
             onChange={(e) => e.target.value && onChange({ departure: e.target.value })}
           />
         )}
         {past && <div className="notice bad">지난 시각이에요. 출발 시각을 다시 선택해 주세요.</div>}
+        {beyond && <div className="notice bad">오늘부터 {MAX_ADVANCE_DAYS + 1}일 안으로 골라 주세요.</div>}
       </div>
 
       {/* 한 화면 레이아웃의 맨 아래 칸 (고정 위치 대신 흐름 안에 둔다) */}

@@ -14,6 +14,12 @@ export const TIME_ZONE = 'Asia/Seoul';
 /** Asia/Seoul은 DST가 없어 고정 오프셋을 쓸 수 있다. */
 export const TIME_ZONE_OFFSET = '+09:00';
 
+/**
+ * 출발 날짜를 고를 수 있는 범위(오늘 이후 일수). 6이면 오늘 포함 7일.
+ * 프론트에서 날짜·시간을 함께 고르는 디자인에 맞춰 오늘 영업일 한정을 풀었다.
+ */
+export const MAX_ADVANCE_DAYS = 6;
+
 /** 추천 결과 보관 시간(초). 만료 후 GET은 404 result_expired. */
 export const RESULT_TTL_SECONDS = 30 * 60;
 
