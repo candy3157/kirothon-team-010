@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<title>Moviepato — 지금 출발해서 볼 수 있는 영화관</title>
+<style>
+  :root{
+    --bg:#0b0b0b; --surface:#151515; --surface2:#1e1e1e; --line:#2d2d2d;
+    --text:#f3f3f3; --sub:#a3a3a3; --mute:#6e6e6e;
+    --accent:#e11d2e; --accent-ink:#ffffff; --ok:#f3f3f3; --warn:#ff7a85; --bad:#ff4d5a; --info:#8c8c8c;
+    --radius:16px; --shadow:0 10px 30px rgba(0,0,0,.35);
+    font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text)}
+  button{font:inherit;color:inherit;cursor:pointer}
+  input,select{font:inherit;color:inherit}
+  .i{width:1.2em;height:1.2em;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;vertical-align:-.25em;flex:none}
+  .btn,.chip{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+  .pick{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center}
+  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  .screen{display:none;min-height:100%}
+  .screen.active{display:flex;flex-direction:column}
+  .wrap{width:100%;max-width:560px;margin:0 auto;padding:20px 18px 120px}
+
+  /* ---------- common ---------- */
+  .brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:18px}
+  .brand .logo{width:28px;height:28px;border-radius:8px;background:var(--accent);display:grid;place-items:center;color:#fff}
+  .steps{display:flex;gap:6px;margin:14px 0 4px}
+  .steps i{flex:1;height:4px;border-radius:4px;background:var(--line)}
+  .steps i.on{background:var(--accent)}
+  h1{font-size:24px;line-height:1.3;margin:14px 0 6px}
+  .lead{color:var(--sub);margin:0 0 18px;font-size:14px}
+  .label{font-size:13px;color:var(--sub);margin:22px 0 8px;font-weight:600}
+  .chip{border:1px solid var(--line);background:var(--surface);padding:8px 12px;border-radius:999px;font-size:13px;white-space:nowrap}
+  .chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+  .btn{border:0;border-radius:14px;padding:15px 18px;font-weight:700;font-size:16px;background:var(--surface2)}
+  .btn.primary{background:var(--accent);color:var(--accent-ink)}
+  .btn.primary:disabled{opacity:.35;cursor:not-allowed}
+  .btn.ghost{background:transparent;border:1px solid var(--line)}
+  .btn.sm{padding:8px 12px;font-size:13px;border-radius:10px}
+  .cta-bar{position:fixed;left:0;right:0;bottom:0;padding:12px 18px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--bg) 30%);z-index:20}
+  .cta-bar .inner{max-width:560px;margin:0 auto;display:flex;gap:10px}
+  .cta-bar .btn{flex:1}
+  .field{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+  .field input{flex:1;background:transparent;border:0;outline:none;font-size:15px;min-width:0}
+  .notice{font-size:13px;border-radius:12px;padding:10px 12px;margin-top:10px;background:var(--surface2);color:var(--sub)}
+  .notice.warn{background:rgba(225,29,46,.12);color:var(--warn)}
+  .notice.bad{background:rgba(225,29,46,.12);color:var(--bad)}
+  .notice.ok{background:rgba(255,255,255,.12);color:var(--ok)}
+
+  /* ---------- S01 movies ---------- */
+  .tabs{display:flex;gap:8px;margin:16px 0 4px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+  @media (min-width:480px){.grid{grid-template-columns:repeat(4,1fr)}}
+  .movie{background:none;border:0;padding:0;text-align:left}
+  .poster{aspect-ratio:2/3;border-radius:12px;position:relative;overflow:hidden;display:flex;align-items:flex-end;padding:10px;font-weight:800;font-size:15px;line-height:1.2;box-shadow:var(--shadow);border:2px solid transparent;transition:transform .15s}
+  .movie:hover .poster{transform:translateY(-2px)}
+  .movie[aria-pressed="true"] .poster{border-color:var(--accent)}
+    .ptitle{display:block;text-shadow:0 2px 8px #000}
+  .ptitle small{display:block;font-size:10px;font-weight:500;opacity:.8;margin-top:3px;letter-spacing:.04em}
+  .age{position:absolute;top:8px;left:8px;font-size:11px;padding:2px 6px;border-radius:6px;background:rgba(0,0,0,.45)}
+  .mt{margin-top:6px;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ms{font-size:11px;color:var(--sub)}
+  .empty{text-align:center;color:var(--sub);padding:40px 10px}
+  .empty b{display:block;color:var(--text);font-size:16px;margin-bottom:6px}
+
+  /* ---------- S02 ---------- */
+  .picked{display:flex;gap:12px;align-items:center;background:var(--surface);border-radius:var(--radius);padding:12px}
+  .picked .poster{width:52px;aspect-ratio:2/3;padding:0;font-size:0;box-shadow:none;border-radius:8px}
+  .picked .info{flex:1}
+  .picked .t{font-weight:700}
+  .seg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .seg button{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:14px}
+  .seg button .i{width:30px;height:30px;stroke-width:1.6}
+  .seg button[aria-pressed="true"]{border-color:var(--accent);background:rgba(225,29,46,.12);color:var(--accent);font-weight:700}
+  .origin-row{display:flex;gap:8px}
+  .origin-row .btn{white-space:nowrap}
+  .suggest{background:var(--surface);border:1px solid var(--line);border-radius:12px;margin-top:6px;overflow:hidden}
+  .suggest button{display:block;width:100%;text-align:left;background:none;border:0;padding:11px 14px;border-bottom:1px solid var(--line);font-size:14px}
+  .suggest button:last-child{border-bottom:0}
+  .suggest button:hover{background:var(--surface2)}
+  .origin-set{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:14px;color:var(--ok)}
+  details{background:var(--surface);border-radius:14px;padding:4px 14px;margin-top:22px}
+  summary{padding:10px 0;font-size:14px;color:var(--sub);cursor:pointer}
+  .opt-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--line);font-size:14px}
+  .stepper{display:flex;align-items:center;gap:10px}
+  .stepper button{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--surface2)}
+  input[type="datetime-local"]{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:8px;width:100%;color-scheme:dark}
+
+  /* ---------- S03 map ---------- */
+  #s03.active{height:100dvh;overflow:hidden;position:relative}
+  .topbar{position:absolute;top:0;left:0;right:0;z-index:15;padding:10px 12px;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+  .topbar > *{pointer-events:auto}
+  .summary{display:flex;align-items:center;gap:10px;background:rgba(16,16,16,.94);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:14px;padding:10px 12px;box-shadow:var(--shadow)}
+  .summary .back{background:none;border:0;padding:0;display:grid;place-items:center}
+  .summary .s-main{flex:1;min-width:0}
+  .summary .s-title{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .summary .s-sub{font-size:12px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sortbar{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+  .sortbar .chip{box-shadow:var(--shadow);background:rgba(16,16,16,.94)}
+  .sortbar .chip[aria-pressed="true"]{background:var(--accent)}
+
+  .map{position:absolute;inset:0;background:#101010;overflow:hidden;touch-action:none;cursor:grab}
+  .map.dragging{cursor:grabbing}
+  .world{position:absolute;left:50%;top:50%;width:0;height:0;will-change:transform;transition:transform .35s ease}
+  .map.dragging .world{transition:none}
+  .world svg.bg{position:absolute;left:-2000px;top:-2000px;width:4000px;height:4000px}
+  .radius{position:absolute;border:1.5px dashed rgba(225,29,46,.35);border-radius:50%;background:rgba(225,29,46,.04);pointer-events:none}
+  .me{position:absolute;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:#fff;border:4px solid var(--accent);box-shadow:0 0 0 8px rgba(255,255,255,.25)}
+  .me-label{position:absolute;transform:translate(-50%,14px);font-size:11px;background:#fff;color:#123;padding:2px 6px;border-radius:6px;white-space:nowrap;font-weight:700}
+  .pin{position:absolute;transform:translate(-50%,-100%);background:var(--surface);border:2px solid var(--accent);color:var(--text);border-radius:12px;padding:4px 8px 4px 4px;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:var(--shadow);transition:transform .15s}
+  .pin::after{content:"";position:absolute;left:50%;bottom:-7px;margin-left:-6px;border:6px solid transparent;border-top-color:var(--accent);border-bottom:0}
+  .pin .rk{width:22px;height:22px;border-radius:8px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center}
+  .pin.top{z-index:3}
+  .pin.sel{transform:translate(-50%,-100%) scale(1.15);z-index:5;background:var(--accent);color:var(--accent-ink)}
+  .pin.sel .rk{background:var(--accent-ink);color:var(--accent)}
+  .pin.unk{border-color:var(--mute);color:var(--sub)}
+  .pin.unk::after{border-top-color:var(--mute)}
+  .pin.unk .rk{background:var(--mute);color:#fff}
+  .map-tools{position:absolute;right:12px;z-index:12;display:flex;flex-direction:column;gap:6px}
+  .map-tools button{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-size:18px;box-shadow:var(--shadow)}
+  .research{position:absolute;left:50%;transform:translateX(-50%);z-index:12;display:none}
+  .research.show{display:block}
+  .research button{background:var(--accent);color:#fff;display:flex;align-items:center;gap:6px;border:0;border-radius:999px;padding:9px 16px;font-weight:700;font-size:13px;box-shadow:var(--shadow)}
+
+  /* sheet / side panel */
+  .sheet{position:absolute;left:0;right:0;bottom:0;z-index:14;background:var(--surface);border-radius:20px 20px 0 0;box-shadow:0 -10px 30px rgba(0,0,0,.4);display:flex;flex-direction:column;height:46%;transition:height .3s ease}
+  .sheet.expanded{height:86%}
+  .sheet.peek{height:120px}
+  .handle{background:none;border:0;padding:10px 0 4px;width:100%;display:grid;place-items:center}
+  .handle i{width:40px;height:5px;border-radius:5px;background:var(--line);display:block}
+  .sheet-head{padding:4px 16px 10px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .sheet-head h2{font-size:17px;margin:0}
+  .sheet-head .meta{font-size:12px;color:var(--mute)}
+  .sheet-body{overflow-y:auto;padding:0 12px 24px;flex:1}
+  @media (min-width:900px){
+    .sheet,.sheet.expanded,.sheet.peek{left:auto;top:0;width:400px;height:100%;border-radius:0;border-left:1px solid var(--line)}
+    .handle{display:none}
+    .map{right:400px}
+    .topbar{right:400px}
+    .map-tools{right:412px!important}
+  }
+
+  .card{width:100%;text-align:left;background:var(--surface2);border:2px solid transparent;border-radius:14px;padding:14px;margin-bottom:10px;display:block}
+  .card.sel{border-color:var(--accent)}
+  .card .row1{display:flex;align-items:center;gap:10px}
+  .rank{width:28px;height:28px;border-radius:9px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:800;flex:none}
+  .rank.unk{background:var(--mute);color:#fff}
+  .card .nm{font-weight:700;flex:1;min-width:0}
+  .card .nm small{display:block;color:var(--sub);font-weight:500;font-size:12px}
+  .start{text-align:right}
+  .start b{font-size:20px;display:block;line-height:1}
+  .start small{font-size:11px;color:var(--sub)}
+  .timeline{display:flex;align-items:center;margin:14px 2px 6px;font-size:11px;color:var(--sub)}
+  .timeline .seg-bar{flex:1;height:6px;border-radius:6px;position:relative;background:var(--line);overflow:hidden;margin:0 6px}
+  .timeline .seg-bar i{position:absolute;top:0;bottom:0;border-radius:6px}
+  .stats{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .tag{font-size:12px;padding:4px 8px;border-radius:8px;background:var(--surface);color:var(--sub)}
+  .tag.ok{color:var(--ok);background:rgba(255,255,255,.1)}
+  .tag.warn{color:var(--warn);background:rgba(225,29,46,.1)}
+  .tag.acc{color:var(--accent);background:rgba(225,29,46,.12);font-weight:700}
+  .section-t{font-size:12px;color:var(--mute);margin:16px 4px 8px;font-weight:700}
+
+  .skel{background:var(--surface2);border-radius:14px;height:112px;margin-bottom:10px;position:relative;overflow:hidden}
+  .skel::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);animation:sh 1.2s infinite}
+  @keyframes sh{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+  .loading-pill{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:13;background:var(--surface);border:1px solid var(--line);padding:10px 16px;border-radius:999px;font-size:13px;display:none;box-shadow:var(--shadow)}
+  .loading-pill.show{display:block}
+  .spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp 0.8s linear infinite;margin-right:6px;vertical-align:-1px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  /* S04 detail */
+  .detail-head{display:flex;align-items:flex-start;gap:10px;padding:4px 4px 12px}
+  .detail-head .back{background:var(--surface2);border:0;border-radius:10px;width:34px;height:34px;flex:none;display:grid;place-items:center}
+  .detail-head h3{margin:0;font-size:18px}
+  .detail-head p{margin:2px 0 0;color:var(--sub);font-size:12px}
+  .travel-box{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:6px}
+  .travel-box div{background:var(--surface2);border-radius:12px;padding:10px;text-align:center}
+  .travel-box small{display:block;color:var(--sub);font-size:11px}
+  .travel-box b{font-size:16px}
+  .shows{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  .showtime{border:1.5px solid var(--line);background:var(--surface2);border-radius:12px;padding:10px;text-align:left}
+  .showtime b{font-size:18px}
+  .showtime .f{font-size:11px;color:var(--sub)}
+  .showtime .why{font-size:11px;margin-top:4px}
+  .showtime[aria-pressed="true"]{border-color:var(--accent);background:rgba(225,29,46,.12)}
+  .showtime:disabled{opacity:.45;cursor:not-allowed}
+  .showtime:disabled .why{color:var(--bad)}
+  .pick-sum{background:rgba(225,29,46,.1);border:1px solid rgba(225,29,46,.3);border-radius:12px;padding:12px;margin-top:12px;font-size:14px}
+  .detail-cta{position:sticky;bottom:0;display:flex;gap:8px;padding:12px 0 4px;background:linear-gradient(transparent,var(--surface) 25%)}
+  .detail-cta .btn{flex:1}
+
+  /* modal + toast + demo panel */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:50;display:none;align-items:flex-end;justify-content:center}
+  .modal.show{display:flex}
+  .modal .box{background:var(--surface);width:100%;max-width:480px;border-radius:20px 20px 0 0;padding:20px}
+  @media (min-width:600px){.modal{align-items:center}.modal .box{border-radius:20px}}
+  .modal h4{margin:0 0 8px;font-size:17px}
+  .modal p{color:var(--sub);font-size:14px;margin:0 0 16px;line-height:1.5}
+  .modal .acts{display:flex;gap:8px}.modal .acts .btn{flex:1}
+  .toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(20px);opacity:0;background:#fff;color:#123;padding:10px 16px;border-radius:12px;font-size:14px;z-index:60;transition:.25s;pointer-events:none;font-weight:600}
+  .toast.show{opacity:1;transform:translateX(-50%)}
+  .demo{position:fixed;right:10px;top:50%;z-index:40;font-size:12px}
+  .demo summary{display:flex;align-items:center;gap:6px;background:#000a;border:1px dashed var(--accent);color:var(--accent);padding:6px 10px;border-radius:10px;list-style:none}
+  .demo[open] summary{border-radius:10px 10px 0 0}
+  .demo .pane{background:#000d;border:1px dashed var(--accent);border-top:0;padding:10px;border-radius:0 0 10px 10px;width:220px}
+  .demo select{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px;margin-top:4px}
+  .demo details{margin:0;padding:0;background:none}
+
+  /* =========================================================
+     REFINED THEME — 그라데이션·그림자·알약 모양 제거, 선과 글자로 정리
+     ========================================================= */
+  :root{--radius:6px; font-family:"Pretendard",-apple-system,"Apple SD Gothic Neo",sans-serif; letter-spacing:-.01em}
+  body{-webkit-font-smoothing:antialiased}
+  h1{font-size:30px;font-weight:700;letter-spacing:-.035em;line-height:1.2;margin:28px 0 8px}
+  .lead{font-size:14px;color:var(--sub);line-height:1.6}
+  .brand{font-size:15px;font-weight:700;letter-spacing:-.02em}
+  .brand .logo{width:auto;height:auto;background:none;color:var(--accent)}
+  .steps{gap:4px;margin-top:20px}.steps i{height:2px;border-radius:0}
+  .label{font-size:11px;font-weight:600;letter-spacing:.12em;color:var(--mute);margin:30px 0 10px}
+
+  /* 버튼 · 칩: 각진 모양, 그림자 없음 */
+  .btn{border-radius:4px;font-weight:600;letter-spacing:-.01em}
+  .btn.ghost{border-color:var(--line)}
+  .btn.ghost:hover{border-color:var(--sub)}
+  .chip{border-radius:4px;background:transparent;font-weight:500}
+  .chip[aria-pressed="true"]{background:var(--text);color:#000;border-color:var(--text);font-weight:600}
+  .cta-bar{background:var(--bg);border-top:1px solid var(--line)}
+  .field{border-radius:4px;background:transparent}
+  .field:focus-within{border-color:var(--sub)}
+  .notice{border-radius:0;background:transparent!important;border-left:2px solid var(--line);padding:6px 12px}
+  .notice.warn,.notice.bad{border-left-color:var(--accent)}
+
+  /* S01 탭: 밑줄형 */
+  .tabs{gap:20px;border-bottom:1px solid var(--line);margin-top:24px}
+  .tabs .chip{border:0;padding:10px 0;margin-bottom:-1px;border-bottom:2px solid transparent;color:var(--mute);background:none}
+  .tabs .chip[aria-pressed="true"]{color:var(--text);background:none;border-bottom-color:var(--accent)}
+  .grid{gap:18px 12px;margin-top:20px}
+  .poster{border-radius:3px;box-shadow:none;border:0;outline:2px solid transparent;outline-offset:2px;transition:outline-color .15s, opacity .15s}
+  .movie:hover .poster{transform:none;opacity:.85}
+  .movie[aria-pressed="true"] .poster{outline-color:var(--accent)}
+  .age{border-radius:2px;background:#000;font-weight:600;font-size:10px}
+  .pick{border-radius:2px;width:22px;height:22px}
+  .mt{margin-top:10px;font-size:14px;font-weight:600}
+  .ms{color:var(--mute)}
+
+  /* S02 */
+  .picked{background:none;border:1px solid var(--line);border-radius:4px}
+  .picked .poster{border-radius:2px}
+  .seg{gap:0;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  .seg button{border:0;border-right:1px solid var(--line);border-radius:0;background:none;color:var(--mute);padding:16px 6px}
+  .seg button:last-child{border-right:0}
+  .seg button[aria-pressed="true"]{background:var(--surface2);color:var(--text);box-shadow:inset 0 -2px 0 var(--accent)}
+  .suggest{border-radius:4px}
+  details{background:none;border:1px solid var(--line);border-radius:4px}
+  .stepper button{border-radius:3px;background:none}
+  input[type="datetime-local"]{border-radius:4px;background:none}
+
+  /* S03 지도 위 UI */
+  .summary,.sortbar .chip,.map-tools button{box-shadow:none;backdrop-filter:none}
+  .summary{border-radius:6px;background:#0b0b0b}
+  .sortbar{gap:0;align-self:flex-start;border:1px solid var(--line);border-radius:4px;background:#0b0b0b;overflow:hidden}
+  .sortbar .chip{border:0;border-right:1px solid var(--line);border-radius:0;background:transparent;color:var(--mute)}
+  .sortbar .chip:last-child{border-right:0}
+  .sortbar .chip[aria-pressed="true"]{background:var(--text);color:#000}
+  .map-tools button{border-radius:4px;background:#0b0b0b}
+  .research button{border-radius:4px;box-shadow:none;background:rgba(225,29,46,.55);border:0;outline:0;
+                   -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#fff}
+  .research button:hover{background:rgba(225,29,46,.75)}
+  /* 회색 테두리 완전 제거 (브라우저 기본 버튼 모양 · 포커스 링 포함) */
+  .research button,.research button:focus,.research button:focus-visible,.research button:active{
+    -webkit-appearance:none;appearance:none;border:none!important;outline:none!important;box-shadow:none!important}
+  .radius{border:1px solid rgba(225,29,46,.4);background:none}
+  .pin{border-radius:3px;border:1px solid #000;background:#fff;color:#000;box-shadow:0 1px 0 rgba(0,0,0,.4);padding:3px 7px 3px 3px;font-variant-numeric:tabular-nums}
+  .pin::after{border-top-color:#fff}
+  .pin .rk{border-radius:2px;width:auto;padding:0 4px;height:20px;background:#000;color:#fff;font-size:11px}
+  .pin.sel{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .pin.sel::after{border-top-color:var(--accent)}
+  .pin.sel .rk{background:#000;color:#fff}
+  .pin.unk{background:#2a2a2a;border-color:#2a2a2a;color:var(--sub)}
+  .pin.unk::after{border-top-color:#2a2a2a}
+  .loading-pill{border-radius:4px;box-shadow:none}
+  .sheet{border-radius:10px 10px 0 0;background:var(--bg);box-shadow:none;border-top:1px solid var(--line)}
+  .sheet-head{border-bottom:1px solid var(--line);padding-bottom:12px}
+  .sheet-head h2{font-size:15px;font-weight:600}
+  .sheet-body{padding:0 16px 24px}
+
+  /* 결과: 박스 카드 → 줄 목록 */
+  .card{background:none;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:18px 0;margin:0;position:relative}
+  .card:hover{background:rgba(255,255,255,.02)}
+  .card.sel{border-bottom-color:var(--line);box-shadow:inset 3px 0 0 var(--accent);padding-left:12px}
+  .rank{width:auto;height:auto;background:none;color:var(--accent);font-weight:700;font-size:13px;font-variant-numeric:tabular-nums;align-self:flex-start;margin-top:2px}
+  .rank.unk{background:none;color:var(--mute)}
+  .card .nm{font-size:15px;font-weight:600}
+  .card .nm small{color:var(--mute);margin-top:2px}
+  .start b{font-size:22px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .start small{color:var(--mute);font-size:10px;letter-spacing:.08em}
+  .timeline{margin:14px 0 10px;font-variant-numeric:tabular-nums;color:var(--mute)}
+  .timeline .seg-bar{height:2px;border-radius:0}
+  .timeline .seg-bar i{border-radius:0}
+  .timeline .seg-bar i:first-child{background:var(--sub)!important}
+  .stats{gap:0;margin-top:0;font-size:12px}
+  .tag{background:none!important;padding:0;border-radius:0;color:var(--sub);font-size:12px}
+  .tag + .tag::before{content:"·";margin:0 7px;color:var(--mute)}
+  .tag.acc{color:var(--accent);font-weight:600}
+  .tag.ok{color:var(--text)}
+  .tag.warn{color:var(--warn)}
+  .tag .i{width:1em;height:1em;vertical-align:-.12em}
+  .section-t{font-size:11px;letter-spacing:.12em;margin:28px 0 4px}
+  .skel{border-radius:2px;height:96px;background:var(--surface)}
+
+  /* S04 상세 */
+  .detail-head{padding:16px 0 14px}
+  .detail-head .back{background:none;border:1px solid var(--line);border-radius:4px}
+  .detail-head h3{font-size:20px;font-weight:700;letter-spacing:-.02em}
+  .travel-box{gap:0;border:1px solid var(--line);border-radius:4px}
+  .travel-box div{background:none;border-radius:0;border-right:1px solid var(--line);padding:12px 8px}
+  .travel-box div:last-child{border-right:0}
+  .travel-box b{font-weight:600;font-variant-numeric:tabular-nums}
+  .shows{gap:6px}
+  .showtime{border-radius:4px;background:none;border:1px solid var(--line)}
+  .showtime b{font-weight:600;font-variant-numeric:tabular-nums}
+  .showtime[aria-pressed="true"]{border-color:var(--accent);background:rgba(225,29,46,.08)}
+  .pick-sum{border-radius:0;background:none;border:0;border-left:2px solid var(--accent);padding:4px 12px;line-height:1.7}
+  .detail-cta{background:var(--bg);border-top:1px solid var(--line);margin-top:8px}
+
+  .modal .box{border-radius:8px;border:1px solid var(--line);background:var(--bg)}
+  .toast{border-radius:4px}
+  .demo summary,.demo .pane{border-radius:4px!important}
+  @media (min-width:900px){ .sheet,.sheet.expanded,.sheet.peek{border-radius:0;border-top:0} }
+
+  /* =========================================================
+     v4 — 시작 화면 + 선택 상태 빨강 + 정보 밀도 복원
+     ========================================================= */
+  #s00 .hero{position:relative;min-height:88vh;display:flex;overflow:hidden;border-bottom:1px solid var(--line)}
+  .wall{position:absolute;inset:-15%;display:grid;grid-template-columns:repeat(6,1fr);gap:10px;transform:rotate(-8deg);opacity:.55}
+  .wall i{aspect-ratio:2/3;background:#1a1a1a center/cover;border-radius:2px;filter:grayscale(.6) contrast(1.05)}
+  .wall i:nth-child(5n+2){filter:none}
+  .hero::after{content:"";position:absolute;inset:0;background:rgba(11,11,11,.72)}
+  .hero-inner{position:relative;z-index:1;width:100%;max-width:1080px;margin:0 auto;padding:22px 24px 48px;display:flex;flex-direction:column}
+  .lnav{display:flex;justify-content:space-between;align-items:center}
+  .wordmark{font-size:22px;font-weight:800;letter-spacing:-.05em}
+  .wordmark b{color:var(--accent)}
+  .hero-copy{margin-top:auto;max-width:620px}
+  .eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:600;margin:0 0 14px}
+  #s00 h1{font-size:clamp(34px,7vw,60px);line-height:1.12;letter-spacing:-.045em;margin:0 0 18px;font-weight:800}
+  #s00 h1 em{font-style:normal;color:var(--accent)}
+  .hero-sub{color:#cfcfcf;font-size:16px;line-height:1.65;margin:0 0 28px}
+  .hero-cta{display:flex;gap:10px;flex-wrap:wrap}
+  .btn.lg{padding:16px 26px;font-size:16px;text-decoration:none}
+  .btn.block{width:100%;display:flex}
+  .lwrap{max-width:1080px;margin:0 auto;padding:48px 24px 40px}
+  .sample{border:1px solid var(--line);border-radius:6px;padding:18px 20px;background:var(--surface);max-width:520px}
+  .sample-top{font-size:12px;color:var(--mute);margin-bottom:14px;display:flex;gap:8px;align-items:center}
+  .sample-top span{color:var(--accent);border:1px solid var(--accent);padding:1px 6px;border-radius:2px;font-size:10px;letter-spacing:.08em}
+  .sample-row{display:flex;align-items:center;gap:12px}
+  .sample-row .nm{flex:1;font-weight:600}.sample-row .nm small{display:block;font-weight:400;color:var(--mute);font-size:12px;margin-top:2px}
+  .sample-bar{display:flex;gap:3px;margin:16px 0 8px}.sample-bar i{height:3px;background:var(--sub)}.sample-bar i+i{background:var(--accent)}
+  .sample-foot{display:flex;justify-content:space-between;font-size:12px;color:var(--mute);font-variant-numeric:tabular-nums}
+  .how{margin:64px 0 0}
+  .how h2{font-size:26px;margin:0 0 24px;letter-spacing:-.03em}
+  .how ol{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));border-top:1px solid var(--line)}
+  .how li{padding:20px 18px 22px 0;border-bottom:1px solid var(--line)}
+  .how li span{color:var(--accent);font-weight:700;font-size:13px;font-variant-numeric:tabular-nums}
+  .how li b{display:block;font-size:17px;margin:10px 0 6px}
+  .how li p,.promise p{margin:0;color:var(--sub);font-size:14px;line-height:1.6}
+  .promise{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:48px 0}
+  .promise div{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:20px}
+  .promise b{display:block;font-size:16px;margin-bottom:6px;letter-spacing:-.03em}
+  .lfoot{color:var(--mute);font-size:12px;text-align:center;margin-top:28px}
+
+  /* 흐름 화면: 상단 바 제거 후 여백 */
+  #s01 .wrap,#s02 .wrap{padding-top:28px}
+  .steps{margin-top:0}
+
+  /* 선택 상태 = 빨강 */
+  .seg{gap:8px;border:0;overflow:visible}
+  .seg button{border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--sub);transition:background .15s,border-color .15s,color .15s}
+  .seg button:last-child{border-right:1px solid var(--line)}
+  .seg button:hover{border-color:#555;color:var(--text)}
+  .seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:none}
+  .chip{transition:background .15s,border-color .15s}
+  .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .tabs .chip[aria-pressed="true"]{background:none;color:var(--text)}
+  .sortbar .chip[aria-pressed="true"]{background:var(--accent);color:#fff}
+  .showtime[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .showtime[aria-pressed="true"] .f,.showtime[aria-pressed="true"] .why span{color:#fff!important}
+
+  /* 결과 카드: 정보 밀도 복원 (면 + 칩) */
+  .sheet-body{padding:12px 12px 24px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px;margin-bottom:8px}
+  .card:hover{background:#181818;border-color:#3a3a3a}
+  .card.sel{border-color:var(--accent);box-shadow:none;padding-left:16px}
+  .stats{gap:6px;margin-top:4px}
+  .tag{border:1px solid var(--line);padding:3px 8px;border-radius:3px}
+  .tag + .tag::before{content:none}
+  .tag.acc{border-color:rgba(225,29,46,.5);background:rgba(225,29,46,.1)!important}
+  .tag.warn{border-color:rgba(255,122,133,.35)}
+  .nm-line{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+  .badge{font-size:10px;font-weight:600;color:#fff;background:var(--accent);padding:2px 6px;border-radius:3px;letter-spacing:0}
+  .lwrap{padding-bottom:64px}
+  .opt-box{border:1px solid var(--line);border-radius:4px;padding:4px 14px;margin-top:22px}
+  .opt-box .opt-row{border-top:0}
+  .btn.soft-red{background:#4a1219;color:#ffd9dc;border:1px solid #6b1c25}
+  .btn.soft-red:hover{background:#5a1620}
+
+  /* 시작 화면: 섹션 단위로 한 화면씩 넘기기 + 나타나기 애니메이션 */
+  #s00 .hero{min-height:100vh;min-height:100dvh}
+  #s00 .lwrap{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;justify-content:center;padding-top:40px;padding-bottom:40px}
+  #s00 .how{margin:0}
+  .hero-main{margin-top:auto;display:grid;grid-template-columns:1fr;gap:20px;align-items:end}
+  .hero-art{order:-1;display:flex;justify-content:center}
+  .hero-art svg{width:100%;max-width:440px;height:auto}
+  @media (min-width:900px){
+    .hero-main{margin:auto 0;grid-template-columns:1fr 1fr;align-items:center;gap:40px}
+    .hero-art{order:2}
+    .hero-art svg{max-width:520px}
+  }
+  @media (max-height:700px) and (max-width:899px){ .hero-art svg{max-width:300px} }
+  .lcta{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:40px 24px;text-align:center;border-top:1px solid var(--line)}
+  .lcta p{margin:0;font-size:clamp(24px,4vw,36px);font-weight:700;letter-spacing:-.035em}
+  .lcta .btn{min-width:220px}
+  .reveal{opacity:0;transform:translateY(28px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1);transition-delay:var(--d,0ms)}
+  .reveal.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){
+    .reveal{opacity:1;transform:none;transition:none}
+  }
+
+  /* 상영회차: 가로로 넘기는 둥근 네모 카드 (버튼과 구분) */
+  .shows-t{border-top:1px solid var(--line);padding-top:18px;margin-top:20px}
+  .shows{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px 0 0;padding:2px 16px 6px 0;scrollbar-width:none}
+  .shows::-webkit-scrollbar{display:none}
+  .showtime{flex:0 0 auto;scroll-snap-align:start;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);
+        display:flex;flex-direction:column;align-items:center;gap:1px;padding:10px 14px;text-align:center}
+  .showtime b{font-size:18px;font-weight:600}
+  .showtime .f{font-size:11px}
+  .showtime .why{font-size:11px;margin-top:4px;white-space:nowrap}
+  .showtime:not(:disabled):hover{border-color:#555}
+  .showtime[aria-pressed="true"]{background:var(--surface);border:2px solid var(--accent);color:var(--text)}
+  .showtime[aria-pressed="true"] b{color:var(--accent)}
+  .showtime[aria-pressed="true"] .f{color:var(--sub)!important}
+  .showtime[aria-pressed="true"] .why span{color:var(--text)!important}
+
+  /* 카드 시간 막대: 출발 ━(이동, 빨강)━|━(대기)━ 상영 */
+  .tl{margin-top:14px}
+  .tl-bar{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--mute);font-variant-numeric:tabular-nums}
+  .tl-track{flex:1;height:3px;background:#3a3a3a;position:relative}
+  .tl-go{position:absolute;left:0;top:0;bottom:0;background:var(--accent)}
+  .tl-mark{position:absolute;top:-4px;width:2px;height:11px;margin-left:-1px;background:var(--text)}
+  .tl-tags{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 42px 0 42px}
+  .tag.travel{color:var(--accent);border-color:rgba(225,29,46,.55);background:rgba(225,29,46,.1)!important;font-weight:600}
+
+  /* 스플래시 */
+  .splash{height:100vh;height:100dvh;align-items:center;justify-content:center;background:var(--bg);cursor:pointer;transition:opacity .6s ease}
+  .splash.out{opacity:0}
+  .splash-inner{text-align:center}
+  .splash-logo{font-size:clamp(44px,9vw,84px);font-weight:800;letter-spacing:-.055em;opacity:0;transform:translateY(12px);animation:spIn .6s .1s cubic-bezier(.2,.7,.2,1) forwards}
+  .splash-logo b{color:var(--accent)}
+  .splash-slogan{margin:14px 0 0;font-size:12px;letter-spacing:.32em;text-transform:uppercase;color:var(--sub);opacity:0;animation:spIn .6s .35s ease forwards}
+  @keyframes spIn{to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){ .splash-logo,.splash-slogan{animation:none;opacity:1;transform:none} .splash{transition:none} }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- 손그림 스타일 아이콘: 일부러 선을 살짝 삐뚤게 그림 -->
+  <symbol id="i-logo" viewBox="0 0 24 24"><path d="M4.1 9.7c5.4-.2 10.8 0 16.1-.1l-.2 9.2c0 .9-.7 1.5-1.5 1.5H5.6c-.8 0-1.5-.7-1.5-1.5z"/><path d="M3.8 9.4l-.6-2.6c-.2-.8.3-1.5 1.1-1.7l13.2-2.6c.8-.2 1.6.3 1.7 1.1l.5 2.2c-5.1.9-10.3 2.3-15.4 3.6z"/><path d="M7.9 4.7l2.4 3.3M12.4 3.8l2.5 3.2"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><path d="M16.8 10.3c.1 3.6-2.8 6.5-6.3 6.4-3.5 0-6.3-2.9-6.2-6.4.1-3.4 2.9-6.1 6.3-6.1 3.4-.1 6.2 2.7 6.2 6.1z"/><path d="M15.4 15.3c1.6 1.5 3.3 3.3 4.9 5"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6.3c4 3.7 8 7.6 12 11.5M17.8 6c-3.9 4-7.8 8-11.7 12.1"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21.2c-.3-.4-6.6-6.9-6.8-11.3C5 6 8.1 3.1 12.1 3c3.9.1 6.9 3 6.8 6.8-.1 4.5-6.5 11-6.9 11.4z"/><path d="M14.3 9.7c0 1.3-1 2.4-2.3 2.4s-2.4-1-2.4-2.3 1.1-2.4 2.4-2.4c1.2 0 2.3 1 2.3 2.3z"/></symbol>
+  <symbol id="i-train" viewBox="0 0 24 24"><path d="M7.2 3.6c3.2-.4 6.5-.4 9.7.1 1.2.2 1.9 1.1 1.9 2.3l-.1 8.6c0 1.3-1 2.2-2.2 2.2H7.4c-1.2 0-2.1-1-2.1-2.2l.1-8.7c0-1.2.7-2.1 1.8-2.3z"/><path d="M5.5 10.2c4.3.3 8.7.2 13.1-.1"/><path d="M8.4 13.4h.4M15.2 13.3h.4M8.3 17.2 6.4 20.6M15.7 17.1l2 3.5"/></symbol>
+  <symbol id="i-car" viewBox="0 0 24 24"><path d="M3.6 15.8c-.1-1.6 0-3 .7-3.9l1.7-4.2c.4-.9 1.2-1.4 2.1-1.4h7.9c.9 0 1.7.6 2 1.4l1.8 4.3c.6.8.8 2.2.7 3.8-.1.7-.6 1.1-1.3 1.1H4.8c-.6 0-1.1-.5-1.2-1.1z"/><path d="M4.6 12c4.9-.3 9.9-.3 14.8.1"/><path d="M9.2 17.3c0 .9-.7 1.7-1.6 1.7S6 18.2 6 17.3M18.1 17.2c0 .9-.7 1.7-1.6 1.7s-1.6-.8-1.6-1.7"/></symbol>
+  <symbol id="i-walk" viewBox="0 0 24 24"><path d="M14.9 4.4c0 .9-.8 1.7-1.7 1.7s-1.7-.8-1.7-1.7.8-1.7 1.7-1.7 1.7.8 1.7 1.7z"/><path d="M12.4 7.6c-.8 2.6-1.3 5.1-1.7 7.6l-2.6 5.6M12.3 8c1.2.9 2.2 2.4 3.2 3.4l2.4.8M11.2 13.6c1.3 1.3 2.4 2.9 3.2 4.9l.6 2.3M12.2 8.1c-1.6.4-3 1.4-4.1 2.9l-.6 2.2"/></symbol>
+  <symbol id="i-route" viewBox="0 0 24 24"><path d="M5.2 18.9c-.2-3.6 1.5-5.8 5.4-6.5 4-.6 5.7-2.4 5.6-6.6"/><path d="M13.3 8.4c1-.9 2-2 3-3.1 1 1 1.9 2.1 2.9 3.1"/><path d="M6.7 19.6c0 .8-.6 1.4-1.4 1.4s-1.4-.6-1.4-1.4.6-1.4 1.4-1.4 1.4.6 1.4 1.4z"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13.4 2.8 5.8 13.3c2 .1 3.9 0 5.9 0l-1.2 7.9 7.7-10.6c-2 0-4-.1-6 0z"/></symbol>
+  <symbol id="i-cup" viewBox="0 0 24 24"><path d="M5 9.2c4.2-.2 8.4-.2 12.6 0-.1 4.3-.6 8.6-2.4 10.6-1.6.9-6.2.9-7.8 0C5.6 17.8 5.1 13.5 5 9.2z"/><path d="M17.5 11c1.6-.3 2.8.4 2.7 1.8-.1 1.5-1.4 2.2-3.1 2"/><path d="M8.8 6.4c-.6-1 .6-1.6 0-2.8M12.4 6.4c-.6-1 .6-1.6 0-2.8"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12.1 5.2c-.2 4.6 0 9.1-.1 13.7M5.3 12.1c4.5-.2 9 .1 13.5-.1"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5.3 12.2c4.5-.3 9 .1 13.5-.2"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><path d="M18.6 12c0 3.7-3 6.7-6.6 6.6-3.7 0-6.6-3-6.6-6.7.1-3.6 3-6.5 6.7-6.5 3.6 0 6.5 3 6.5 6.6z"/><path d="M12 11.2v1.4M12 2.8v2.4M12 18.9v2.4M2.8 12h2.4M18.8 12h2.4"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M19.2 11.6c-.2-4.1-3.3-7.1-7.3-7.1-3.2 0-5.7 1.9-6.8 4.6"/><path d="M4.8 12.4c.1 4 3.3 7.2 7.3 7.1 3.1 0 5.6-1.9 6.7-4.5"/><path d="M19.6 4.7l-.3 4.7-4.6-.4M4.4 19.3l.3-4.6 4.6.3"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M11.2 3.9c.4-.7 1.4-.7 1.8 0l8.2 14.6c.4.7-.1 1.5-.9 1.5H3.9c-.8 0-1.3-.8-.9-1.5z"/><path d="M12.1 9.2c-.1 1.8 0 3.4 0 5M12 16.9h.2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M4.8 12.6c1.6 1.5 3 3 4.4 4.6 3.1-3.9 6.3-7.7 9.9-11.2"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9.4 3.4h5.3M10.2 3.6c.1 2.1 0 4.2-.1 6.3L4.8 18.6c-.6 1 .1 2 1.2 2h12c1.1 0 1.8-1.1 1.2-2.1L14 9.8c-.1-2-.1-4.1 0-6.2"/><path d="M7.3 15c3.1-.6 6.2.6 9.4 0"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M5.3 9.1c2.2 2.3 4.5 4.6 6.8 6.8 2.3-2.2 4.5-4.5 6.7-6.9"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M14.8 5.2c-2.3 2.2-4.6 4.5-6.8 6.8 2.2 2.3 4.5 4.6 6.8 6.8"/></symbol>
+  <symbol id="i-ticket" viewBox="0 0 24 24"><path d="M3.6 7.4c0-.8.6-1.4 1.4-1.4h14.1c.8 0 1.4.6 1.4 1.4v2.4c-1.2.1-2.1 1-2.1 2.2s.9 2.1 2.1 2.2v2.4c0 .8-.6 1.4-1.4 1.4H5c-.8 0-1.4-.6-1.4-1.4v-2.4c1.2-.1 2.1-1 2.1-2.2S4.8 9.9 3.6 9.8z"/><path d="M14.6 6.3v1.6M14.6 11.2v1.6M14.6 16.1v1.6"/></symbol>
+</svg>
+
+<div id="live" class="sr-only" aria-live="polite"></div>
+
+<!-- ================= S00 스플래시 (5초 후 영화 선택으로) ================= -->
+<section id="s00" class="screen active splash" aria-label="Moviepato">
+  <div class="splash-inner">
+    <div class="splash-logo">Moviepato<b>.</b></div>
+    <p class="splash-slogan">Now showing, near you</p>
+  </div>
+</section>
+
+<!-- ================= S01 영화 선택 ================= -->
+<section id="s01" class="screen" aria-labelledby="s01h">
+  <div class="wrap">
+    <div class="steps" aria-hidden="true"><i class="on"></i><i></i><i></i></div>
+    <h1 id="s01h">어떤 영화를 볼까요?</h1>
+
+    <label class="field">
+      <svg class="i" aria-hidden="true"><use href="#i-search"/></svg>
+      <input id="q" type="search" placeholder="영화 제목 검색" aria-label="영화 제목 검색" autocomplete="off" />
+      <button id="qClear" class="btn sm ghost" hidden aria-label="검색어 지우기"><svg class="i" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </label>
+
+    <div class="tabs" role="group" aria-label="상영 구분">
+      <button class="chip" data-tab="now" aria-pressed="true">현재 상영작</button>
+      <button class="chip" data-tab="soon" aria-pressed="false">상영 예정작</button>
+    </div>
+    <div id="movieGrid" class="grid"></div>
+  </div>
+</section>
+
+<!-- ================= S02 출발 조건 ================= -->
+<section id="s02" class="screen" aria-labelledby="s02h">
+  <div class="wrap">
+    <div class="steps" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i></div>
+    <h1 id="s02h">어디서, 어떻게 출발하나요?</h1>
+
+    <div class="picked" id="pickedMovie"></div>
+
+    <div class="label">출발지</div>
+    <div class="origin-row">
+      <button class="btn sm ghost" id="useGeo" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-pin"/></svg> 현재 위치 사용</button>
+      <label class="field" style="flex:1;padding:8px 12px">
+        <input id="originQ" placeholder="주소·장소 직접 검색" aria-label="출발지 검색" autocomplete="off" />
+      </label>
+    </div>
+    <div id="originSuggest"></div>
+    <div id="originState"></div>
+
+    <div class="label">이동수단</div>
+    <div class="seg" role="group" aria-label="이동수단">
+      <button data-mode="transit" aria-pressed="true"><svg class="i" aria-hidden="true"><use href="#i-train"/></svg>대중교통</button>
+      <button data-mode="driving" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-car"/></svg>자동차</button>
+      <button data-mode="walking" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-walk"/></svg>도보</button>
+    </div>
+
+    <div class="label">출발 시각</div>
+    <div style="display:flex;gap:8px">
+      <button class="chip" data-dep="now" aria-pressed="true">지금 출발</button>
+      <button class="chip" data-dep="later" aria-pressed="false">시간 지정</button>
+    </div>
+    <input id="depAt" type="datetime-local" hidden aria-label="출발 날짜와 시간" />
+    <div id="depWarn"></div>
+
+    <div class="opt-box">
+      <div class="opt-row"><span>상영 전 도착 여유</span>
+        <div class="stepper"><button data-step="buf" data-d="-5" aria-label="여유 시간 줄이기">−</button><b id="bufVal">10분</b><button data-step="buf" data-d="5" aria-label="여유 시간 늘리기">+</button></div></div>
+    </div>
+  </div>
+  <div class="cta-bar"><div class="inner">
+    <button class="btn primary" id="goRecommend" disabled>영화관 추천받기</button>
+  </div></div>
+</section>
+
+<!-- ================= S03 지도 추천 + S04 상세 ================= -->
+<section id="s03" class="screen" aria-labelledby="s03h">
+  <h2 id="s03h" class="sr-only">영화관 추천 지도</h2>
+  <div class="map" id="map" aria-hidden="true">
+    <div class="world" id="world"></div>
+  </div>
+  <div class="loading-pill" id="loadPill"><span class="spinner"></span>상영시간표와 이동시간 확인 중…</div>
+
+  <div class="topbar">
+    <div class="summary">
+      <button class="back" id="toS02" aria-label="조건 변경으로 돌아가기"><svg class="i" aria-hidden="true"><use href="#i-back"/></svg></button>
+      <div class="s-main" role="button" tabindex="0" id="sumEdit" aria-label="조건 변경">
+        <div class="s-title" id="sumTitle"></div>
+        <div class="s-sub" id="sumSub"></div>
+      </div>
+      <button class="btn sm ghost" id="changeMovie">영화 변경</button>
+    </div>
+  </div>
+  <div class="research" id="research" style="top:120px"><button id="researchBtn"><svg class="i" aria-hidden="true"><use href="#i-refresh"/></svg> 이 지역 재검색</button></div>
+  <div class="map-tools" id="mapTools" style="top:120px">
+    <button id="zIn" aria-label="확대"><svg class="i" aria-hidden="true"><use href="#i-plus"/></svg></button>
+    <button id="zOut" aria-label="축소"><svg class="i" aria-hidden="true"><use href="#i-minus"/></svg></button>
+    <button id="recenter" aria-label="내 위치로"><svg class="i" aria-hidden="true"><use href="#i-target"/></svg></button>
+  </div>
+
+  <div class="sheet" id="sheet">
+    <button class="handle" id="handle" aria-label="목록 펼치기/접기"><i></i></button>
+    <div id="sheetContent" style="display:flex;flex-direction:column;flex:1;min-height:0"></div>
+  </div>
+</section>
+
+<!-- modal -->
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="box"><h4 id="mTitle"></h4><p id="mBody"></p>
+    <div class="acts"><button class="btn ghost" id="mCancel">취소</button><button class="btn primary" id="mOk">이동하기</button></div></div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<!-- demo controls (디자인 검토용) -->
+<details class="demo" id="demo" hidden><!-- 데모 상태 패널: 숨김. 보려면 hidden 지우기 -->
+  <summary><svg class="i" aria-hidden="true"><use href="#i-flask"/></svg> 데모 상태</summary>
+  <div class="pane">
+    <label>추천 결과 시나리오
+      <select id="scenario">
+        <option value="normal">정상 (관람 가능 있음)</option>
+        <option value="partial">일부 실패 (공급자·경로)</option>
+        <option value="none">관람 가능 회차 없음</option>
+        <option value="nearby0">주변 영화관 없음</option>
+        <option value="error">전체 조회 실패</option>
+      </select></label>
+    <label style="display:block;margin-top:8px">
+      <input type="checkbox" id="geoFail" /> 위치 권한 거부 시뮬레이션</label>
+    <label style="display:block;margin-top:6px">
+      <input type="checkbox" id="movieFail" /> 영화 목록 조회 실패</label>
+  </div>
+</details>
+
+<script>
+/* =====================================================================
+   MOCK DATA  (실제 구현 시 API 응답으로 교체)
+   ===================================================================== */
+const MOVIES = [
+  {id:'m1', title:'별의 끝에서', year:2026, runtime:142, age:'12', genre:'SF', status:'now', c:['#2b2a6b','#e86a92']},
+  {id:'m2', title:'한강 탈출', year:2026, runtime:118, age:'15', genre:'액션', status:'now', c:['#0f4c5c','#5fd3b3']},
+  {id:'m3', title:'고양이 탐정 미루', year:2026, runtime:96, age:'ALL', genre:'애니', status:'now', c:['#f6a04d','#f25f5c']},
+  {id:'m4', title:'귀환', year:2026, runtime:131, age:'15', genre:'드라마', status:'now', c:['#3d2c2e','#c9a227']},
+  {id:'m5', title:'귀환', year:2019, runtime:124, age:'12', genre:'재개봉', status:'now', c:['#22303c','#8aa1b1']},
+  {id:'m6', title:'마지막 여름', year:2026, runtime:109, age:'12', genre:'로맨스', status:'now', c:['#ff9a8b','#ff6a88']},
+  {id:'m7', title:'심야 편의점', year:2026, runtime:101, age:'19', genre:'스릴러', status:'now', c:['#111','#4caf50']},
+  {id:'m8', title:'파도 위의 집', year:2026, runtime:115, age:'ALL', genre:'가족', status:'now', c:['#1e3c72','#2a5298']},
+  {id:'m9', title:'얼음 궁전', year:2026, runtime:120, age:'ALL', genre:'애니', status:'soon', c:['#83a4d4','#b6fbff'], open:'12월 3일 개봉'},
+  {id:'m10', title:'검은 서재', year:2026, runtime:133, age:'15', genre:'미스터리', status:'soon', c:['#232526','#8e6e53'], open:'12월 17일 개봉'},
+];
+const BRANDS = {
+  CGV:{color:'#e5262c', url:'https://www.cgv.co.kr/'},
+  롯데시네마:{color:'#ed1c24', url:'https://www.lottecinema.co.kr/'},
+  메가박스:{color:'#503396', url:'https://www.megabox.co.kr/'},
+};
+const THEATERS = [
+  {id:'t1', name:'CGV 강남', brand:'CGV', addr:'서울 강남구 강남대로 438', lat:37.5016, lng:127.0263},
+  {id:'t2', name:'메가박스 코엑스', brand:'메가박스', addr:'서울 강남구 봉은사로 524', lat:37.5125, lng:127.0590},
+  {id:'t3', name:'롯데시네마 월드타워', brand:'롯데시네마', addr:'서울 송파구 올림픽로 300', lat:37.5131, lng:127.1040},
+  {id:'t4', name:'CGV 용산아이파크몰', brand:'CGV', addr:'서울 용산구 한강대로23길 55', lat:37.5292, lng:126.9648},
+  {id:'t5', name:'메가박스 강남', brand:'메가박스', addr:'서울 서초구 서초대로77길 3', lat:37.4983, lng:127.0262},
+  {id:'t6', name:'롯데시네마 건대입구', brand:'롯데시네마', addr:'서울 광진구 아차산로 272', lat:37.5403, lng:127.0699},
+  {id:'t7', name:'CGV 압구정', brand:'CGV', addr:'서울 강남구 압구정로30길 45', lat:37.5245, lng:127.0287},
+  {id:'t8', name:'메가박스 성수', brand:'메가박스', addr:'서울 성동구 왕십리로 50', lat:37.5447, lng:127.0447},
+  {id:'t9', name:'CGV 영등포', brand:'CGV', addr:'서울 영등포구 영중로 15', lat:37.5170, lng:126.9033},
+  {id:'t10', name:'롯데시네마 서울대입구', brand:'롯데시네마', addr:'서울 관악구 관악로 158', lat:37.4812, lng:126.9527},
+  {id:'t11', name:'CGV 왕십리', brand:'CGV', addr:'서울 성동구 왕십리광장로 17', lat:37.5612, lng:127.0378},
+  {id:'t12', name:'메가박스 신촌', brand:'메가박스', addr:'서울 서대문구 신촌로 129', lat:37.5560, lng:126.9407},
+];
+const PLACES = [
+  {label:'강남역 2호선', lat:37.4979, lng:127.0276},
+  {label:'서울특별시청', lat:37.5663, lng:126.9779},
+  {label:'잠실역', lat:37.5133, lng:127.1001},
+  {label:'홍대입구역', lat:37.5572, lng:126.9245},
+  {label:'성수역', lat:37.5446, lng:127.0559},
+  {label:'여의도역', lat:37.5216, lng:126.9243},
+  {label:'부산 서면 (주변 영화관 없음 테스트)', lat:35.1578, lng:129.0597},
+];
+
+/* =====================================================================
+   STATE  (명세서 6장 SearchContext)
+   ===================================================================== */
+const ctx = {
+  selectedMovieId:null, origin:null, transportMode:'transit', departureAt:'now',
+  arrivalBufferMinutes:10, radiusKm:10, sortMode:'earliest',
+  selectedTheaterId:null, selectedShowtimeId:null,
+};
+const ui = { tab:'now', q:'', results:null, fetchedAt:null, pan:{x:0,y:0}, zoom:1, sheet:'mid', dirty:true };
+const ENTRY_MIN = 5;      // 입장 소요 시간
+const PREP_MIN = 0;       // 출발 준비 시간 (MVP)
+
+/* ---------- utils ---------- */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const I = n => `<svg class="i" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pad = n => String(n).padStart(2,'0');
+const hm = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const addMin = (d,m) => new Date(d.getTime()+m*60000);
+const diffMin = (a,b) => Math.round((a-b)/60000);
+const hash = s => { let h=2166136261; for (const c of s) { h^=c.charCodeAt(0); h=Math.imul(h,16777619); } return h>>>0; };
+const MODE = {transit:{ic:'train',nm:'대중교통'}, driving:{ic:'car',nm:'자동차'}, walking:{ic:'walk',nm:'도보'}};
+const SORT = {earliest:'가장 빨리 보기', shortest_travel:'최단 이동', relaxed:'여유 있게 도착'};
+function km(a,b){ const R=6371, dLat=(b.lat-a.lat)*Math.PI/180, dLng=(b.lng-a.lng)*Math.PI/180;
+  const x=Math.sin(dLat/2)**2+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(x)); }
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2200); }
+function announce(msg){ $('#live').textContent=msg; }
+function go(id){ $$('.screen').forEach(s=>s.classList.toggle('active', s.id===id)); window.scrollTo(0,0); }
+const movie = () => MOVIES.find(m=>m.id===ctx.selectedMovieId);
+// 임의 포스터: picsum 랜덤 사진(영화별 고정 seed) + 어두운 그라데이션. 이미지 실패 시 색 그라데이션이 보임
+const posterImg = m => `https://picsum.photos/seed/cinema-${m.id}/300/450`;
+const posterStyle = m => `background:url(${posterImg(m)}) center/cover,${m.c[0]}`;
+
+/* =====================================================================
+   S01 영화 선택
+   ===================================================================== */
+function renderMovies(){
+  const g = $('#movieGrid');
+  if ($('#movieFail').checked){
+    g.innerHTML = `<div class="empty" style="grid-column:1/-1"><b>영화 정보를 불러오지 못했어요</b>잠시 후 다시 시도해 주세요.<br><br><button class="btn sm primary" onclick="$('#movieFail').checked=false;renderMovies()">다시 시도</button></div>`;
+    return;
+  }
+  const q = ui.q.trim();
+  let list = q ? MOVIES.filter(m=>m.title.includes(q)) : MOVIES.filter(m=>m.status===ui.tab);
+  if (!list.length){
+    g.innerHTML = `<div class="empty" style="grid-column:1/-1"><b>‘${esc(q)}’ 검색 결과가 없습니다</b>띄어쓰기나 철자를 확인하거나 다른 제목으로 검색해 보세요.</div>`;
+    return;
+  }
+  const dupTitles = new Set(MOVIES.map(m=>m.title).filter((t,i,a)=>a.indexOf(t)!==i));
+  g.innerHTML = list.map(m=>`
+    <button class="movie" data-id="${m.id}" aria-pressed="${ctx.selectedMovieId===m.id}" ${m.status==='soon'?'data-soon="1"':''}
+      aria-label="${esc(m.title)} ${m.year}년 ${m.runtime}분${m.status==='soon'?' 상영 예정':''}">
+      <div class="poster" style="${posterStyle(m)}"><span class="age">${m.age}</span>${ctx.selectedMovieId===m.id?`<span class="pick">${I('check')}</span>`:''}</div>
+      <div class="mt">${esc(m.title)}${dupTitles.has(m.title)?` <span style="color:var(--accent)">(${m.year})</span>`:''}</div>
+      <div class="ms">${m.status==='soon'?m.open:`${m.genre} · ${m.runtime}분 · ${m.year}`}</div>
+    </button>`).join('');
+}
+$('#movieGrid').addEventListener('click', e=>{
+  const b = e.target.closest('.movie'); if(!b) return;
+  if (b.dataset.soon){ toast('아직 개봉 전인 영화예요. 상영 회차가 없어요.'); return; }
+  if (ctx.selectedMovieId !== b.dataset.id){ ctx.selectedMovieId = b.dataset.id; ui.dirty = true; }
+  renderMovies(); renderS02(); go('s02');
+});
+$('#q').addEventListener('input', e=>{ ui.q=e.target.value; $('#qClear').hidden=!ui.q; renderMovies(); });
+$('#qClear').onclick = ()=>{ ui.q=''; $('#q').value=''; $('#qClear').hidden=true; renderMovies(); $('#q').focus(); };
+$$('[data-tab]').forEach(b=>b.onclick=()=>{ ui.tab=b.dataset.tab; $$('[data-tab]').forEach(x=>x.setAttribute('aria-pressed', x===b)); renderMovies(); });
+$('#movieFail').onchange = renderMovies;
+
+/* =====================================================================
+   S02 출발 조건
+   ===================================================================== */
+function renderS02(){
+  const m = movie(); if(!m) return;
+  // 현재 위치를 쓰는 중이면 빨간 버튼, 아니면 기본 버튼
+  const usingGeo = ctx.origin?.label==='현재 위치';
+  $('#useGeo').classList.toggle('primary', usingGeo);
+  $('#useGeo').classList.toggle('ghost', !usingGeo);
+  $('#useGeo').setAttribute('aria-pressed', usingGeo);
+  $('#pickedMovie').innerHTML = `<div class="poster" style="${posterStyle(m)}"></div>
+    <div class="info"><div class="t">${esc(m.title)} <span class="ms">(${m.year})</span></div><div class="ms">${m.genre} · ${m.runtime}분 · ${m.age==='ALL'?'전체':m.age+'세'}</div></div>
+    <button class="btn sm ghost" onclick="go('s01')">변경</button>`;
+  $('#originState').innerHTML = ctx.origin
+    ? `<div class="origin-set">${I('check')} <span><b>${esc(ctx.origin.label)}</b>에서 출발</span></div>` : '';
+  $$('[data-mode]').forEach(b=>b.setAttribute('aria-pressed', b.dataset.mode===ctx.transportMode));
+  $$('[data-dep]').forEach(b=>b.setAttribute('aria-pressed', (b.dataset.dep==='now')===(ctx.departureAt==='now')));
+  $('#depAt').hidden = ctx.departureAt==='now';
+  $('#bufVal').textContent = ctx.arrivalBufferMinutes + '분';
+  validateS02();
+}
+function validateS02(){
+  let ok = !!(ctx.selectedMovieId && ctx.origin && ctx.transportMode);
+  let warn = '';
+  if (ctx.departureAt!=='now'){
+    if (!ctx.departureAt){ ok=false; }
+    else if (new Date(ctx.departureAt) < addMin(new Date(),-1)){ ok=false; warn='지난 시각이에요. 출발 시각을 다시 선택해 주세요.'; }
+  }
+  $('#depWarn').innerHTML = warn ? `<div class="notice bad">${warn}</div>` : '';
+  $('#goRecommend').disabled = !ok;
+  return ok;
+}
+function setOrigin(o){ ctx.origin=o; ui.dirty=true; $('#originSuggest').innerHTML=''; $('#originQ').value=''; renderS02(); }
+$('#useGeo').onclick = ()=>{
+  const fail = ()=>{ $('#originState').innerHTML = `<div class="notice warn">위치를 사용할 수 없습니다. 출발지를 직접 선택해 주세요.</div>`; $('#originQ').focus(); };
+  if ($('#geoFail').checked || !navigator.geolocation) return fail();
+  $('#originState').innerHTML = `<div class="notice"><span class="spinner"></span>현재 위치 확인 중…</div>`;
+  navigator.geolocation.getCurrentPosition(
+    p => setOrigin({lat:p.coords.latitude, lng:p.coords.longitude, label:'현재 위치'}),
+    fail, {timeout:8000});
+};
+$('#originQ').addEventListener('input', e=>{
+  const q=e.target.value.trim();
+  const list = q ? PLACES.filter(p=>p.label.includes(q)) : PLACES;
+  $('#originSuggest').innerHTML = `<div class="suggest" role="listbox">${
+    list.length ? list.map((p,i)=>`<button role="option" data-pl="${PLACES.indexOf(p)}">${I('pin')} ${esc(p.label)}</button>`).join('')
+                : `<button disabled>일치하는 장소가 없어요</button>`}</div>`;
+});
+$('#originQ').addEventListener('focus', e=>e.target.dispatchEvent(new Event('input')));
+$('#originSuggest').addEventListener('click', e=>{ const b=e.target.closest('[data-pl]'); if(b) setOrigin({...PLACES[b.dataset.pl]}); });
+$$('[data-mode]').forEach(b=>b.onclick=()=>{ ctx.transportMode=b.dataset.mode; ui.dirty=true; renderS02(); });
+$$('[data-dep]').forEach(b=>b.onclick=()=>{
+  if (b.dataset.dep==='now') ctx.departureAt='now';
+  else { const d=addMin(new Date(),30); d.setMinutes(Math.ceil(d.getMinutes()/10)*10);
+    const v=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    $('#depAt').value=v; ctx.departureAt=v; }
+  ui.dirty=true; renderS02();
+});
+$('#depAt').onchange = e=>{ ctx.departureAt=e.target.value; ui.dirty=true; validateS02(); };
+$$('[data-step]').forEach(b=>b.onclick=()=>{
+  ctx.arrivalBufferMinutes=Math.min(40,Math.max(0,ctx.arrivalBufferMinutes + +b.dataset.d));
+  ui.dirty=true; renderS02();
+});
+$('#goRecommend').onclick = ()=>{ if(!validateS02()) return; go('s03'); if (ui.dirty) search(); else renderS03(); };
+
+/* =====================================================================
+   추천 로직 (명세서 4장)
+   ===================================================================== */
+function travelMinutes(distKm, mode){
+  const road = distKm*1.3;
+  if (mode==='transit') return Math.round(8 + road/22*60);   // 대기·환승 포함
+  if (mode==='driving') return Math.round(4 + road/24*60);   // 시내 평균
+  return Math.round(road/4.5*60);
+}
+function showtimesFor(t, m, base){
+  const h = hash(t.id+m.id);
+  if (h%6===0) return [];                    // 이 영화관은 해당 영화 미상영
+  const offset = 5 + h%50, interval = 25 + (h%4)*15;
+  const out=[];
+  for (let k=-1;k<9;k++){
+    const start = addMin(base, offset + k*interval);
+    out.push({ id:`${t.id}-${m.id}-${k}`, start });   // 회차 = 시작 시각만 (관·포맷·좌석은 받아올 수 없어 제외)
+  }
+  return out;
+}
+function evaluate(){
+  const scenario = $('#scenario').value;
+  const now = new Date();
+  const dep = ctx.departureAt==='now' ? now : new Date(ctx.departureAt);
+  const base = new Date(dep); base.setSeconds(0,0); base.setMinutes(Math.floor(base.getMinutes()/10)*10);
+  const m = movie();
+  const res = { departAt:dep, scenario, ranked:[], unknown:[], failedProviders:[], noShow:0, inRadius:0 };
+  if (scenario==='error') { res.error=true; return res; }
+
+  for (const t of THEATERS){
+    const d = km(ctx.origin, t);
+    if (scenario==='nearby0' || d > ctx.radiusKm) continue;
+    res.inRadius++;
+    if (scenario==='partial' && t.brand==='롯데시네마'){ if(!res.failedProviders.includes(t.brand)) res.failedProviders.push(t.brand); continue; }
+    let shows = showtimesFor(t, m, base);
+    if (!shows.length){ res.noShow++; continue; }
+    const routeFail = scenario==='partial' && t.id==='t2';
+    const travel = routeFail ? null : travelMinutes(d, ctx.transportMode);
+    const entryAt = travel==null ? null : addMin(dep, PREP_MIN + travel + ENTRY_MIN);
+    shows = shows.map(s=>{
+      if (s.start < now) return {...s, ok:false, why:'이미 시작됨'};
+      if (entryAt==null) return {...s, ok:null, why:'도착 시간 확인 불가'};
+      const slack = diffMin(s.start, entryAt);
+      if (scenario==='none' || slack < ctx.arrivalBufferMinutes)
+        return {...s, ok:false, slack, why: slack<0 ? `${-slack}분 늦게 도착` : `여유 ${slack}분 (부족)`};
+      return {...s, ok:true, slack};
+    });
+    const card = { t, dist:d, travel, entryAt, shows, routeFail };
+    if (routeFail){ res.unknown.push(card); continue; }
+    const okShows = shows.filter(s=>s.ok);
+    if (!okShows.length) continue;
+    card.earliest = okShows[0];
+    card.relaxed = okShows.find(s=>s.slack>=ctx.arrivalBufferMinutes+15) || okShows[0];
+    res.ranked.push(card);
+  }
+  return res;
+}
+function sorted(res){
+  const list = res.ranked.map(c=>({...c, rep: ctx.sortMode==='relaxed' ? c.relaxed : c.earliest}));
+  const by = {
+    earliest:(a,b)=>a.rep.start-b.rep.start || a.travel-b.travel,
+    shortest_travel:(a,b)=>a.travel-b.travel || a.rep.start-b.rep.start,
+    relaxed:(a,b)=>a.rep.start-b.rep.start || b.rep.slack-a.rep.slack,
+  }[ctx.sortMode];
+  list.sort(by);
+  // 추천 이유 태그
+  const fastest = [...list].sort((a,b)=>a.rep.start-b.rep.start)[0];
+  const nearest = [...list].sort((a,b)=>a.travel-b.travel)[0];
+  list.forEach(c=>{ c.reasons=[];
+    if (c===fastest) c.reasons.push('가장 빠른 관람');
+    if (c===nearest) c.reasons.push('가장 가까움');
+    if (c.rep.slack>=25) c.reasons.push('여유 있게 도착');
+  });
+  return list;
+}
+
+/* =====================================================================
+   S03 지도 + 목록
+   ===================================================================== */
+function search(){
+  ctx.selectedTheaterId=null; ctx.selectedShowtimeId=null; ui.results=null;
+  ui.pan={x:0,y:0}; ui.zoom=1; $('#research').classList.remove('show');
+  renderS03(true);
+  $('#loadPill').classList.add('show'); announce('추천 영화관을 찾는 중입니다');
+  setTimeout(()=>{
+    ui.results = evaluate(); ui.fetchedAt = new Date(); ui.dirty=false;
+    $('#loadPill').classList.remove('show');
+    renderS03();
+    const n = ui.results.ranked?.length||0;
+    announce(ui.results.error ? '추천 정보를 불러오지 못했습니다' : `관람 가능한 영화관 ${n}곳을 찾았습니다`);
+  }, 900);
+}
+function renderSummary(){
+  const m=movie();
+  $('#sumTitle').textContent = `${m.title} (${m.year})`;
+  const dep = ctx.departureAt==='now' ? '지금 출발' : `${hm(new Date(ctx.departureAt))} 출발`;
+  $('#sumSub').innerHTML = `${I('pin')} ${esc(ctx.origin.label)} · ${I(MODE[ctx.transportMode].ic)} ${MODE[ctx.transportMode].nm} · ${dep}`;
+  $$('[data-sort]').forEach(b=>b.setAttribute('aria-pressed', b.dataset.sort===ctx.sortMode));
+}
+function renderS03(loading){
+  renderSummary();
+  renderMap(loading);
+  if (ctx.selectedTheaterId) renderDetail(); else renderList(loading);
+}
+
+/* ---- map ---- */
+function pxPerKm(){ const el=$('#map'); const r=Math.min(el.clientWidth, el.clientHeight); return r/(ctx.radiusKm*2.2)*ui.zoom; }
+function proj(p){ const s=pxPerKm();
+  const x=(p.lng-ctx.origin.lng)*88.2*s, y=-(p.lat-ctx.origin.lat)*111*s; return {x,y}; }
+function bgSVG(){
+  // 장식용 가짜 지도 (실제 구현: 카카오/네이버 지도 SDK로 교체)
+  const rnd = (i)=>((hash('r'+i)%1000)/1000);
+  let roads='';
+  for(let i=0;i<26;i++){ const v=-2000+i*160+rnd(i)*60;
+    roads+=`<line x1="${v}" y1="-2000" x2="${v+rnd(i+50)*300-150}" y2="2000" stroke="#1d1d1d" stroke-width="${i%5===0?9:3}"/>`;
+    roads+=`<line x1="-2000" y1="${v}" x2="2000" y2="${v+rnd(i+90)*300-150}" stroke="#1d1d1d" stroke-width="${i%6===0?9:3}"/>`; }
+  let parks='';
+  for(let i=0;i<14;i++) parks+=`<rect x="${rnd(i+7)*3600-1800}" y="${rnd(i+19)*3600-1800}" width="${60+rnd(i+3)*140}" height="${50+rnd(i+5)*120}" rx="24" fill="#161616"/>`;
+  return `<svg class="bg" viewBox="-2000 -2000 4000 4000" xmlns="http://www.w3.org/2000/svg">
+    ${parks}${roads}
+    <path d="M-2000 -260 C -1200 -420, -700 -40, -150 -200 S 700 -520, 1200 -300 S 1800 -160, 2000 -260" stroke="#2a0e12" stroke-width="70" fill="none"/>
+  </svg>`;
+}
+function renderMap(loading){
+  const w=$('#world'); const s=pxPerKm();
+  const res=ui.results; const list = res && !res.error ? sorted(res) : [];
+  let html = bgSVG();
+  html += `<div class="me" style="left:0;top:0"></div><div class="me-label" style="left:0;top:0">출발</div>`;
+  if (!loading && res && !res.error){
+    list.forEach((c,i)=>{ const p=proj(c.t);
+      html += `<button class="pin ${i<3?'top':''} ${ctx.selectedTheaterId===c.t.id?'sel':''}" style="left:${p.x}px;top:${p.y}px" data-tid="${c.t.id}"
+        aria-label="${i+1}위 ${esc(c.t.name)}, ${hm(c.rep.start)} 상영"><span class="rk">${pad(i+1)}</span>${hm(c.rep.start)}</button>`; });
+    res.unknown.forEach(c=>{ const p=proj(c.t);
+      html += `<button class="pin unk ${ctx.selectedTheaterId===c.t.id?'sel':''}" style="left:${p.x}px;top:${p.y}px" data-tid="${c.t.id}" aria-label="${esc(c.t.name)}, 이동시간 확인 불가"><span class="rk">?</span>확인 불가</button>`; });
+  }
+  w.innerHTML = html;
+  applyPan();
+  const top = $('.topbar').offsetHeight + 16;
+  $('#mapTools').style.top = top+'px';
+  $('#research').style.top = ($('.topbar').offsetHeight + 2)+'px';   // 요약 바 바로 아래
+}
+function applyPan(){ $('#world').style.transform = `translate(${ui.pan.x}px,${ui.pan.y}px)`; }
+function centerOn(t){
+  const p=proj(t); const map=$('#map');
+  const desktop = innerWidth>=900;
+  const sheetH = desktop?0:$('#sheet').offsetHeight;
+  const topH = $('.topbar').offsetHeight;
+  const visibleCenterY = (topH + (map.clientHeight - sheetH))/2 - map.clientHeight/2;
+  ui.pan = {x:-p.x, y:-p.y + visibleCenterY};
+  applyPan();
+}
+// drag-to-pan
+(()=>{ const map=$('#map'); let st=null;
+  map.addEventListener('pointerdown', e=>{ if(e.target.closest('.pin')) return; st={x:e.clientX,y:e.clientY,px:ui.pan.x,py:ui.pan.y,moved:false}; map.setPointerCapture(e.pointerId); });
+  map.addEventListener('pointermove', e=>{ if(!st) return; const dx=e.clientX-st.x, dy=e.clientY-st.y;
+    if (Math.abs(dx)+Math.abs(dy)>4){ st.moved=true; map.classList.add('dragging'); }
+    ui.pan={x:st.px+dx,y:st.py+dy}; applyPan(); });
+  const end=()=>{ if(st?.moved && ui.results && !ui.results.error) $('#research').classList.add('show'); st=null; map.classList.remove('dragging'); };
+  map.addEventListener('pointerup', end); map.addEventListener('pointercancel', end);
+})();
+$('#map').addEventListener('click', e=>{ const p=e.target.closest('.pin'); if(p) openTheater(p.dataset.tid, true); });
+$('#zIn').onclick = ()=>{ ui.zoom=Math.min(3,ui.zoom*1.3); ui.pan.x*=1.3; ui.pan.y*=1.3; renderMap(); };
+$('#zOut').onclick = ()=>{ ui.zoom=Math.max(.5,ui.zoom/1.3); ui.pan.x/=1.3; ui.pan.y/=1.3; renderMap(); };
+$('#recenter').onclick = ()=>{ ui.pan={x:0,y:0}; applyPan(); };
+$('#researchBtn').onclick = ()=>{ toast('데모: 지도 중심 기준 재검색은 실제 API 연동 시 동작해요'); $('#research').classList.remove('show'); search(); };
+
+/* ---- list ---- */
+function sheetHead(title, meta){ return `<div class="sheet-head"><h2>${title}</h2><div class="meta">${meta||''}</div></div>`; }
+function renderList(loading){
+  const box=$('#sheetContent'); const res=ui.results;
+  if (loading || !res){
+    box.innerHTML = sheetHead('추천 영화관', '<span class="spinner"></span>조회 중') +
+      `<div class="sheet-body">${'<div class="skel"></div>'.repeat(4)}</div>`; return;
+  }
+  const meta = `${hm(ui.fetchedAt)} 기준 <button class="btn sm ghost" id="refetch" style="padding:4px 8px;margin-left:4px" aria-label="다시 조회">${I('refresh')}</button>`;
+  let body='';
+  if (res.error){
+    body = `<div class="empty"><b>추천 정보를 불러오지 못했어요</b>상영시간표·이동시간 서버에 연결할 수 없습니다.<br><br>
+      <div style="display:flex;gap:8px;justify-content:center"><button class="btn sm primary" onclick="search()">다시 시도</button><button class="btn sm ghost" onclick="go('s02')">조건 변경</button></div></div>`;
+    box.innerHTML = sheetHead('추천 영화관', meta) + `<div class="sheet-body">${body}</div>`; bindRefetch(); return;
+  }
+  const list = sorted(res);
+  if (res.failedProviders.length)
+    body += `<div class="notice warn">${I('alert')} ${res.failedProviders.join(', ')} 상영 정보를 확인하지 못했어요. 일부 영화관이 목록에서 빠졌을 수 있어요.</div>`;
+
+  if (!res.inRadius){
+    body += `<div class="empty"><b>주변에 영화관이 없어요</b>출발지를 바꿔 다시 찾아보세요.<br><br>
+      <button class="btn sm primary" onclick="go('s02')">출발지 변경</button></div>`;
+  } else if (!list.length && !res.unknown.length){
+    const reason = res.noShow===res.inRadius ? '선택한 지역·날짜에서 상영 정보를 찾지 못했습니다.' : (ctx.departureAt==='now'?'지금 출발하면':'이 시각에 출발하면')+' 관람 가능한 회차가 없습니다.';
+    body += `<div class="empty"><b>${reason}</b>조건을 바꿔 다시 찾아볼까요?<br><br>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+      <button class="btn sm ghost" onclick="go('s02')">출발 시간 변경</button>
+      <button class="btn sm ghost" onclick="toast('데모: 다음 날짜 탐색은 API 연동 시 제공')">내일 회차 보기</button></div></div>`;
+  } else {
+    body += list.map((c,i)=>cardHTML(c,i)).join('');
+    if (res.unknown.length){
+      body += `<div class="section-t">확인이 필요한 영화관</div>`;
+      body += res.unknown.map(c=>`<button class="card" data-tid="${c.t.id}">
+        <div class="row1"><span class="rank unk">?</span><div class="nm">${esc(c.t.name)}<small>${c.dist.toFixed(1)}km</small></div></div>
+        <div class="stats"><span class="tag warn">이동시간을 확인하지 못했어요</span><span class="tag">관람 가능 여부 미확인</span></div></button>`).join('');
+    }
+    body += `<p class="ms" style="text-align:center;margin-top:14px">이동시간은 예상값이에요. 실제 교통 상황에 따라 달라질 수 있어요.</p>`;
+  }
+  box.innerHTML = sheetHead(`추천 영화관 <span class="ms">${list.length}곳</span>`, meta) + `<div class="sheet-body" id="listBody">${body}</div>`;
+  bindRefetch();
+  if (ui.listScroll) $('#listBody').scrollTop = ui.listScroll;
+}
+function cardHTML(c,i){
+  const r=c.rep;
+  // 타임라인: 출발 → 입장 → 상영
+  const total = diffMin(r.start, ui.results.departAt);
+  const travelPct = Math.max(4, (c.travel+ENTRY_MIN)/total*100);
+  return `<button class="card ${ctx.selectedTheaterId===c.t.id?'sel':''}" data-tid="${c.t.id}" aria-label="${i+1}위 ${esc(c.t.name)}">
+    <div class="row1"><span class="rank">${pad(i+1)}</span>
+      <div class="nm"><span class="nm-line">${esc(c.t.name)}${c.reasons.map(x=>`<span class="badge">${x}</span>`).join('')}</span><small>${c.dist.toFixed(1)}km</small></div>
+      <div class="start"><small>상영시간</small><b>${hm(r.start)}</b></div></div>
+    <div class="tl">
+      <div class="tl-bar"><span>${hm(ui.results.departAt)}</span>
+        <div class="tl-track" aria-hidden="true"><i class="tl-go" style="width:${travelPct}%"></i><i class="tl-mark" style="left:${travelPct}%"></i></div>
+        <span>${hm(r.start)}</span></div>
+      <div class="tl-tags">
+        <span class="tag travel">${I(MODE[ctx.transportMode].ic)} ${c.travel}분 소요</span>
+        <span class="tag">${hm(c.entryAt)} 도착</span>
+      </div>
+    </div></button>`;
+}
+function bindRefetch(){ const b=$('#refetch'); if(b) b.onclick=()=>search(); }
+function widen(){ ctx.radiusKm=Math.min(30,ctx.radiusKm+10); if($('#scenario').value==='nearby0') $('#scenario').value='normal'; search(); }
+$('#sheetContent').addEventListener('click', e=>{ const c=e.target.closest('.card'); if(c) openTheater(c.dataset.tid, false); });
+$$('[data-sort]').forEach(b=>b.onclick=()=>{ ctx.sortMode=b.dataset.sort; // 재조회 없이 정렬만
+  if (!ctx.selectedTheaterId){ renderMap(); renderList(); } else renderMap();
+  announce(`${SORT[ctx.sortMode]} 순으로 정렬했습니다`); });
+
+/* =====================================================================
+   S04 영화관 상세
+   ===================================================================== */
+function findCard(id){ const r=ui.results; return sorted(r).map((c,i)=>({...c,rank:i+1})).find(c=>c.t.id===id) || r.unknown.find(c=>c.t.id===id); }
+function openTheater(id, fromMap){
+  const lb=$('#listBody'); if (lb) ui.listScroll=lb.scrollTop;
+  ctx.selectedTheaterId=id;
+  const c=findCard(id);
+  ctx.selectedShowtimeId = (c.rep||{}).id || null;
+  if (ui.sheet==='peek') setSheet('mid');
+  renderMap(); renderDetail(); centerOn(c.t);
+}
+function closeDetail(){ ctx.selectedTheaterId=null; ctx.selectedShowtimeId=null; renderMap(); renderList(); }
+function renderDetail(){
+  const c=findCard(ctx.selectedTheaterId); const box=$('#sheetContent');
+  const shows=c.shows.filter(s=>s.start>new Date());   // 이미 시작된 회차는 숨김
+  const sel = shows.find(s=>s.id===ctx.selectedShowtimeId);
+  const m=movie();
+  box.innerHTML = `<div class="sheet-body" style="padding-top:6px">
+    <div class="detail-head"><button class="back" id="dBack" aria-label="목록으로">${I('back')}</button>
+      <div style="flex:1"><h3>${c.rank?`<span class="rank" style="margin-right:8px">${pad(c.rank)}</span>`:''}${esc(c.t.name)}</h3>
+      <p>${c.t.brand} · ${esc(c.t.addr)}</p></div></div>
+    ${c.travel==null
+      ? `<div class="notice warn">이동시간을 확인하지 못했어요. 관람 가능 여부를 판단할 수 없어요. <button class="btn sm ghost" onclick="toast('데모: 경로 재조회')">재시도</button></div>`
+      : `<div class="travel-box"><div><small>${MODE[ctx.transportMode].nm}</small><b>${c.travel}분</b></div>
+         <div><small>예상 입장</small><b>${hm(c.entryAt)}</b></div><div><small>거리</small><b>${c.dist.toFixed(1)}km</b></div></div>
+         <p class="ms" style="margin:4px 4px 0">입장 소요 ${ENTRY_MIN}분 포함 · 예상값</p>`}
+    <div class="section-t shows-t">${esc(m.title)} · 오늘 상영회차</div>
+    <div class="shows" role="group" aria-label="상영회차">
+      ${shows.map(s=>`<button class="showtime" data-sid="${s.id}" aria-pressed="${s.id===ctx.selectedShowtimeId}" ${s.ok===false?'disabled':''}>
+        <b>${hm(s.start)}</b> <span class="f">~${hm(addMin(s.start,m.runtime))}</span>
+        <div class="why">${s.ok===true?`<span style="color:var(--ok)">${I('check')} ${s.slack}분 여유</span>`:s.why}</div></button>`).join('')}
+    </div>
+    ${sel ? `<div class="pick-sum"><b>${hm(sel.start)} 회차 선택</b><br>
+       ${sel.ok ? `${hm(c.entryAt)} 입장 예상 → 상영 <b>${sel.slack}분 전</b> 도착` : '도착 가능 여부를 확인할 수 없어요'}
+       ${sel.ok?`<br><span class="ms">늦어도 <b>${hm(addMin(ui.results.departAt, sel.slack-ctx.arrivalBufferMinutes))}</b>에는 출발하세요</span>`:''}</div>` : ''}
+    <p class="ms" style="margin:12px 4px">상영시간표는 바뀔 수 있어요. 예매 페이지 정보가 최종 기준이에요.</p>
+    <div class="detail-cta">
+      <button class="btn soft-red" id="dDir">${I('route')} 길찾기</button>
+      <button class="btn primary" id="dBook" ${sel?'':'disabled'}>${I('ticket')} 예매하기</button>
+    </div></div>`;
+  $('#dBack').onclick = closeDetail;
+  box.querySelector('.shows').onclick = e=>{ const b=e.target.closest('.showtime'); if(!b||b.disabled) return; ctx.selectedShowtimeId=b.dataset.sid; renderDetail(); };
+  $('#dDir').onclick = ()=>confirmOut('길찾기로 이동',
+    `카카오맵에서 <b>${esc(c.t.name)}</b>까지 길찾기를 엽니다.`,
+    `https://map.kakao.com/link/to/${encodeURIComponent(c.t.name)},${c.t.lat},${c.t.lng}`);
+  $('#dBook').onclick = ()=>confirmOut(`${c.t.brand} 공식 예매로 이동`,
+    `${c.t.brand} 공식 예매 페이지로 이동합니다.<br>회차 정보가 자동으로 넘어가지 않으면 <b>${hm(sel.start)}</b> 회차를 다시 선택해 주세요.`,
+    BRANDS[c.t.brand].url);
+}
+function confirmOut(title, body, url){
+  $('#mTitle').textContent=title; $('#mBody').innerHTML=body; $('#modal').classList.add('show'); $('#mOk').focus();
+  $('#mOk').onclick=()=>{ window.open(url,'_blank','noopener'); $('#modal').classList.remove('show'); };
+}
+$('#mCancel').onclick = ()=>$('#modal').classList.remove('show');
+document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ if($('#modal').classList.contains('show')) $('#modal').classList.remove('show'); else if(ctx.selectedTheaterId && $('#s03').classList.contains('active')) closeDetail(); }});
+
+/* ---- sheet + nav ---- */
+function setSheet(s){ ui.sheet=s; const el=$('#sheet'); el.classList.toggle('expanded',s==='full'); el.classList.toggle('peek',s==='peek'); }
+$('#handle').onclick = ()=>setSheet({peek:'mid',mid:'full',full:'peek'}[ui.sheet]);
+$('#toS02').onclick = ()=>{ renderS02(); go('s02'); };
+$('#sumEdit').onclick = $('#toS02').onclick;
+$('#sumEdit').onkeydown = e=>{ if(e.key==='Enter') $('#toS02').onclick(); };
+$('#changeMovie').onclick = ()=>go('s01');
+$('#scenario').onchange = ()=>{ if($('#s03').classList.contains('active')) search(); else ui.dirty=true; };
+addEventListener('resize', ()=>{ if($('#s03').classList.contains('active')) renderMap(); });
+
+// 스플래시: 1.5초 보여주고 영화 선택으로 (누르면 바로 넘어감)
+(()=>{
+  const sp = $('#s00');
+  let done = false;
+  const next = () => { if (done) return; done = true; sp.classList.add('out'); setTimeout(()=>go('s01'), 600); };
+  setTimeout(next, 1500);
+  sp.addEventListener('click', next);
+})();
+renderMovies();
+</script>
+</body>
+</html>
