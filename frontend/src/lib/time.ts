@@ -32,33 +32,63 @@ function addDays(ymd: string, days: number): string {
   return new Date(Date.parse(`${ymd}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
 }
 
-/**
- * 오늘 영업일의 "HH:mm" → "YYYY-MM-DDTHH:mm:00+09:00".
- * 04시 전 시각(00:00–03:59)은 영업일 다음 날 새벽으로 본다.
- * 예: 11-14 23:30에 "00:20" → 2026-11-15T00:20:00+09:00
- */
-export function departureISO(hhmm: string, now: Date = new Date()): string {
-  const h = Number(hhmm.slice(0, 2));
-  const date = businessDateKST(now);
-  return `${h < BUSINESS_DAY_START_HOUR ? addDays(date, 1) : date}T${hhmm}:00+09:00`;
+/** 출발 날짜를 고를 수 있는 범위: 오늘 + 6일 (백엔드 MAX_ADVANCE_DAYS와 같게) */
+export const MAX_ADVANCE_DAYS = 6;
+
+/** 서울 시각 → 날짜·시간 입력칸 값 "YYYY-MM-DDTHH:mm" */
+export function toLocalInput(d: Date): string {
+  return `${todayKST(d)}T${hm(d)}`;
 }
 
-/** 오늘 "HH:mm"이 이미 지난 시각인지 (1분 여유) */
-export function isPastTime(hhmm: string, now: Date = new Date()): boolean {
-  return Date.parse(departureISO(hhmm, now)) < now.getTime() - 60_000;
+/** 날짜·시간 입력칸 값 "YYYY-MM-DDTHH:mm" → "YYYY-MM-DDTHH:mm:00+09:00" */
+export function departureISO(local: string): string {
+  return `${local}:00+09:00`;
 }
 
-/** 지금 + min분을 10분 단위로 올린 "HH:mm" (영업일을 넘기면 03:50) */
+/** 이미 지난 시각인지 (1분 여유) */
+export function isPastTime(local: string, now: Date = new Date()): boolean {
+  return Date.parse(departureISO(local)) < now.getTime() - 60_000;
+}
+
+/** 마지막 조회 영업일 다음 날 03:59까지 허용한다. */
+export function isBeyondWindow(local: string, now: Date = new Date()): boolean {
+  return Date.parse(departureISO(local)) > Date.parse(departureISO(dateInputMax(now)));
+}
+
+/** 입력칸 min / max */
+export function dateInputMin(now: Date = new Date()): string {
+  return toLocalInput(now);
+}
+export function dateInputMax(now: Date = new Date()): string {
+  const endDate = addDays(businessDateKST(now), MAX_ADVANCE_DAYS + 1);
+  return `${endDate}T${pad2(BUSINESS_DAY_START_HOUR - 1)}:59`;
+}
+
+/** 지금 + min분을 10분 단위로 올린 "YYYY-MM-DDTHH:mm" */
 export function suggestTime(min = 30, now: Date = new Date()): string {
   const t = new Date(now.getTime() + min * 60_000);
-  if (businessDateKST(t) !== businessDateKST(now)) return '03:50';
-  const [h, m] = hm(t).split(':').map(Number);
-  const up = Math.ceil(m / 10) * 10;
-  if (up === 60) {
-    if (h === BUSINESS_DAY_START_HOUR - 1) return '03:50'; // 04:00은 다음 영업일
-    return `${pad2((h + 1) % 24)}:00`;
-  }
-  return `${String(h).padStart(2, '0')}:${String(up).padStart(2, '0')}`;
+  const step = 10 * 60_000;
+  return toLocalInput(new Date(Math.ceil(t.getTime() / step) * step));
+}
+
+const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
+/** "19:30" (오늘) / "내일 19:30" / "11/17(화) 19:30" */
+export function departureLabel(localOrIso: string, now: Date = new Date()): string {
+  const iso = localOrIso.length <= 16 ? departureISO(localOrIso) : localOrIso;
+  const d = new Date(iso);
+  const day = todayKST(d);
+  if (day === todayKST(now)) return hm(d);
+  if (day === todayKST(new Date(now.getTime() + 86_400_000))) return `내일 ${hm(d)}`;
+  const [, m, dd] = day.split('-').map(Number);
+  const w = WEEK[new Date(`${day}T12:00:00+09:00`).getUTCDay()];
+  return `${m}/${dd}(${w}) ${hm(d)}`;
+}
+
+/** 상영 날짜 표시: "오늘" / "내일" / "11/17(화)" */
+export function dayLabel(iso: string, now: Date = new Date()): string {
+  const label = departureLabel(iso, now);
+  const i = label.lastIndexOf(' ');
+  return i < 0 ? '오늘' : label.slice(0, i);
 }
 
 /** a - b (분) */

@@ -46,7 +46,7 @@ cd frontend && npm install && npm run dev
 |---|---|---|
 | 정렬 | `sortBy: earliest` 고정 | 가장 빨리 볼 수 있는 순. 정렬 버튼은 디자인에서 뺌 |
 | 상영 전 여유 시간 | 사용자 설정 없음. `meta.policy.bufferMinutes`를 상세 화면에 표시 | 서버 정책값이라 요청으로 못 바꿈 |
-| 출발 날짜 | 오늘만, 시간만 고름 | MVP는 오늘 영업일만 허용 |
+| 출발 날짜 | 날짜 + 시간, 오늘부터 7일 | API 1.1.0에서 백엔드도 같은 범위로 바꿈 (`MAX_ADVANCE_DAYS`) |
 | 출발지 검색 | 미리 정한 장소 목록(`src/lib/places.ts`) + 현재 위치 | 백엔드에 주소→좌표 변환 없음. **TODO: 카카오 로컬 API** |
 | 지도 | 가짜 배경 지도(`MapView`) | **TODO: 카카오/네이버 지도 SDK**. props는 그대로 두고 내부만 교체 |
 | 포스터 | `posterUrl` 없으면 제목 카드 | 샘플 데이터는 포스터 없음 |

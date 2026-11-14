@@ -14,7 +14,7 @@ export interface SearchContext {
   movie: Movie | null;
   origin: Origin | null;
   transportMode: TransportMode;
-  /** 'now' 또는 오늘 "HH:mm" */
+  /** 'now' 또는 "YYYY-MM-DDTHH:mm" (서울 시각, 오늘부터 7일) */
   departure: 'now' | string;
 }
 

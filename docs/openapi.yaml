@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Cinema Recommendation API
-  version: 1.0.0
+  version: 1.1.0
   summary: 영화 우선 탐색·이동시간 기반 영화관 추천 API
   description: |
     사용자가 고른 영화의 상영 여부를 먼저 확인하고, 그 영화를 상영하는 모든 지원 영화관을
@@ -12,7 +12,7 @@ info:
       알 수 없는 필드는 400으로 거부한다(`additionalProperties: false`).
     - **영화 먼저.** 상영 여부 확인이 경로 계산보다 먼저다. `not_showing`·`unknown`이면 경로를 조회하지 않는다.
     - **판정은 회차, 표시는 영화관.** 응답 `cinemas`는 영화관 배열이고 각 항목이 대표 회차와 회차 배열을 가진다.
-    - **MVP는 오늘 영업일만.** 심야 회차(`25:10`)는 오늘 영업일에 포함하고 시각은 다음 날 01:10으로 계산한다.
+    - **오늘 영업일부터 7일(오늘 영업일 + 6일)까지 조회한다.** 출발 날짜의 영업일 시간표로 판정한다. 심야 회차(`25:10`)는 그 영업일에 포함하고 시각은 다음 날 01:10으로 계산한다.
       영업일은 Asia/Seoul **04:00**에 바뀐다. 00:00–03:59 요청은 전날 영업일로 처리한다.
     - **모든 시각은 오프셋을 포함한 ISO 8601**(기본 `Asia/Seoul`, `+09:00`).
     - `도착 가능`은 이동시간 기준 판단이다. 잔여 좌석·예매 가능을 뜻하지 않는다.
@@ -45,12 +45,14 @@ info:
     6. `sortBy` 변경은 `GET /api/recommendations/{resultId}?sortBy=`로 한다. 경로를 다시 조회하지 않는다.
        결과는 `expiresAt`까지 보관하며, 만료되면 404 `result_expired`가 오고 `POST`로 다시 요청한다.
     7. 서버 정책값(`bufferMinutes`, `waitWeight`)은 요청에서 받지 않고 `meta.policy`로 알려 준다.
-    8. 오늘 영업일 밖의 `date`(availability)나 `departureTime`(추천)은 400이다. 오늘 마지막 회차 이후 출발도 400이다.
+    8. 오늘 영업일부터 7일 밖의 `date`(availability)나 `departureTime`(추천)은 400이다. 그날 마지막 회차 이후 출발도 400이다.
+       (1.1.0: 프론트 디자인이 날짜·시간을 함께 고르므로 '오늘 영업일만' 제한을 풀었다. 범위는 `MAX_ADVANCE_DAYS`.)
 
     ## 변경 이력
     | 버전 | 날짜 | 내용 |
     |---|---|---|
     | 1.0.0 | 2026-11-14 | 최초 확정. 이후 변경은 버전과 이 이력으로만 한다. |
+    | 1.1.0 | 2026-11-14 | 출발 날짜 지정 허용: `date`·`departureTime`을 오늘부터 7일까지 받는다(프론트 요청). |
   license:
     name: UNLICENSED
     identifier: UNLICENSED
@@ -157,13 +159,13 @@ paths:
       summary: 영화 상영 여부 확인 (FR-03, 4.1)
       description: |
         출발지와 출발시각을 쓰지 않는다. 공급자 조회가 실패하면 오류 대신 `status: unknown`을 돌려준다.
-        `date`는 오늘 영업일만 허용한다. 생략하면 오늘이다.
+        `date`는 오늘 영업일부터 7일(오늘 영업일 + 6일)까지 허용한다. 생략하면 오늘 영업일이다. 영업일은 04:00에 바뀐다.
       parameters:
         - $ref: '#/components/parameters/MovieId'
         - name: date
           in: query
           required: false
-          description: 조회일(YYYY-MM-DD). MVP는 오늘 영업일만 허용한다.
+          description: 조회 영업일(YYYY-MM-DD). 오늘 영업일부터 7일까지 허용한다.
           schema:
             type: string
             format: date
@@ -286,8 +288,8 @@ components:
   responses:
     BadRequest:
       description: |
-        잘못된 입력. 코드: `invalid_request`, `unsupported_date`(오늘 영업일이 아닌 날짜),
-        `departure_out_of_range`(오늘 영업일 밖이거나 오늘 마지막 회차 이후의 출발시각).
+        잘못된 입력. 코드: `invalid_request`, `unsupported_date`(오늘부터 7일 밖의 날짜),
+        `departure_out_of_range`(오늘부터 7일 밖이거나 그날 마지막 회차 이후의 출발시각).
       content:
         application/json:
           schema:
@@ -304,7 +306,7 @@ components:
             unsupportedDate:
               value:
                 code: unsupported_date
-                message: 현재는 오늘 영업일만 조회할 수 있습니다.
+                message: 오늘부터 7일 안의 날짜만 조회할 수 있습니다.
                 requestId: req_02
     MovieNotFound:
       description: 알 수 없는 영화. 코드 `movie_not_found`.
@@ -584,7 +586,7 @@ components:
         departureTime:
           type: string
           format: date-time
-          description: 오프셋을 포함한 시각. 생략하면 요청 시점(`지금`). 오늘 영업일 안이어야 한다.
+          description: 오프셋을 포함한 시각. 생략하면 요청 시점(`지금`). 출발시각이 속한 영업일(04:00 기준)이 오늘 영업일부터 7일 안이어야 한다.
         sortBy:
           $ref: '#/components/schemas/SortBy'
     Notice:
@@ -837,7 +839,7 @@ components:
             lastShowtimeStart:
               type: string
               format: date-time
-              description: 이 영화관의 오늘 마지막 회차 시작
+              description: 이 영화관의 조회 영업일 마지막 회차 시작
             showtimes:
               type: array
               items:

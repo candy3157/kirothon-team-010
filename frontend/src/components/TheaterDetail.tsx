@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Coordinates, RankedCinema, ResultMeta, Showtime, UnroutableCinema, UnroutableShowtime } from '../api/types';
 import { distanceKm, kakaoDirectionsUrl } from '../lib/geo';
 import { representative, unarrivableReason } from '../lib/recommend';
-import { addMinISO, clockTime, hm, pad2 } from '../lib/time';
+import { addMinISO, clockTime, dayLabel, hm, pad2 } from '../lib/time';
 import { MODE } from '../state';
 import { useConfirmOut, useToast } from './Feedback';
 import { Icon } from './Icon';
@@ -84,7 +84,7 @@ export function TheaterDetail({ cinema: c, origin, meta, movieTitle, runtimeMinu
         </div>
       )}
 
-      <div className="section-t shows-t">{movieTitle} · 오늘 상영회차</div>
+      <div className="section-t shows-t">{movieTitle} · {dayLabel(meta.departureTime)} 상영회차</div>
       {shows.length === 0 ? (
         <p className="ms">남은 회차가 없어요.</p>
       ) : (

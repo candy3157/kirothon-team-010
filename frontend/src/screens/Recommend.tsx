@@ -6,7 +6,7 @@ import { MapView } from '../components/MapView';
 import { TheaterCard } from '../components/TheaterCard';
 import { TheaterDetail } from '../components/TheaterDetail';
 import { reasonBadges } from '../lib/recommend';
-import { hm } from '../lib/time';
+import { departureLabel, hm } from '../lib/time';
 import { MODE, type SearchContext } from '../state';
 
 export interface ResultState {
@@ -99,7 +99,7 @@ export function Recommend({ ctx, result, onRetry, onEditConditions, onChangeMovi
       ? data.cinemas.find((c) => c.cinemaId === selectedId) ?? data.unroutableCinemas.find((c) => c.cinemaId === selectedId)
       : undefined;
 
-  const depLabel = ctx.departure === 'now' ? '지금 출발' : `${ctx.departure} 출발`;
+  const depLabel = ctx.departure === 'now' ? '지금 출발' : `${departureLabel(ctx.departure)} 출발`;
 
   return (
     <section className="screen map-screen" aria-labelledby="s03h">

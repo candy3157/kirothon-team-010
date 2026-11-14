@@ -165,11 +165,14 @@ describe('GET /api/movies/{movieId}/availability', () => {
     expectContract(res, '/api/movies/{movieId}/availability', 'get', 'Availability');
   });
 
-  it('오늘 날짜는 허용, 다른 날짜는 400 unsupported_date', async () => {
+  it('오늘부터 7일 안은 허용, 범위 밖 날짜는 400 unsupported_date', async () => {
     h = makeApp();
     const ok = await h.app.inject(url('movie_001', '?date=2026-11-14'));
     expect(ok.statusCode).toBe(200);
-    const other = await h.app.inject(url('movie_001', '?date=2026-11-15'));
+    const later = await h.app.inject(url('movie_001', '?date=2026-11-20'));
+    expect(later.statusCode).toBe(200);
+    expectContract(later, '/api/movies/{movieId}/availability', 'get', 'Availability');
+    const other = await h.app.inject(url('movie_001', '?date=2026-11-21'));
     expect(other.statusCode).toBe(400);
     expect(other.json().code).toBe('unsupported_date');
     expectContract(other, '/api/movies/{movieId}/availability', 'get', 'Availability');
@@ -286,9 +289,9 @@ describe('POST /api/recommendations', () => {
     expect(res.json().details.map((d: { field: string }) => d.field)).toContain('radiusKm');
   });
 
-  it('오늘 영업일 밖의 출발시각은 400 departure_out_of_range', async () => {
+  it('조회 범위(오늘부터 7일) 밖의 출발시각은 400 departure_out_of_range', async () => {
     h = makeApp();
-    const res = await post(requestBody({ departureTime: '2026-11-16T10:00:00+09:00' }));
+    const res = await post(requestBody({ departureTime: '2026-11-21T10:00:00+09:00' }));
     expect(res.statusCode).toBe(400);
     expect(res.json().code).toBe('departure_out_of_range');
     expectContract(res, '/api/recommendations', 'post', 'RecommendationResult');

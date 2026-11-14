@@ -4,6 +4,8 @@ import {
   businessTimeToInstant,
   businessTimeToIso,
   isTodayBusinessDate,
+  businessDateOf,
+  isWithinBookingWindow,
   isUpcomingTodayShowtime,
   lastShowtimeStart,
   parseBusinessTime,
@@ -14,6 +16,19 @@ import {
 
 const D = '2026-11-14';
 const kst = (s: string) => new Date(`${s}+09:00`);
+
+describe('7일 조회 범위와 04시 영업일 경계', () => {
+  it.each(['2026-11-14T23:30:00', '2026-11-15T03:59:00'])('현재 %s의 마지막 심야까지 포함한다', (at) => {
+    const now = kst(at);
+    expect(isWithinBookingWindow(businessDateOf(kst('2026-11-21T03:59:59')), now, 6)).toBe(true);
+    expect(isWithinBookingWindow(businessDateOf(kst('2026-11-21T04:00:00')), now, 6)).toBe(false);
+    expect(isWithinBookingWindow('2026-11-13', now, 6)).toBe(false);
+  });
+  it('04시가 되면 조회 가능한 마지막 영업일도 하루 이동한다', () => {
+    expect(isWithinBookingWindow('2026-11-21', kst('2026-11-15T04:00:00'), 6)).toBe(true);
+    expect(isWithinBookingWindow('2026-11-14', kst('2026-11-15T04:00:00'), 6)).toBe(false);
+  });
+});
 
 describe('AT-19: 25:10 심야 회차', () => {
   it('다음 날 01:10(+09:00)으로 변환한다', () => {
