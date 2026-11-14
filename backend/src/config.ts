@@ -46,7 +46,11 @@ export interface NaverConfig {
   mapsApiKey?: string;
 }
 
-export const DEFAULT_NAVER_SEARCH_LOCAL_URL = 'https://openapi.naver.com/v1/search/local.json';
+/**
+ * 네이버 지역 검색. NCP 콘솔(NAVER API HUB)에서 받은 키는 이 주소를 쓴다.
+ * 옛 개발자센터 키는 https://openapi.naver.com/v1/search/local.json (2027-06-30까지).
+ */
+export const DEFAULT_NAVER_SEARCH_LOCAL_URL = 'https://naverapihub.apigw.ntruss.com/search/v1/local';
 export const DEFAULT_NCP_GEOCODE_URL = 'https://maps.apigw.ntruss.com/map-geocode/v2/geocode';
 
 export interface AppConfig {

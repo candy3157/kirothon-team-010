@@ -139,10 +139,12 @@ export class NaverPlaceProvider implements PlaceSearchProvider {
     const url = new URL(this.cfg.searchLocalUrl);
     url.searchParams.set('query', query);
     url.searchParams.set('display', String(PLACE_RESULT_MAX));
-    const body = (await this.getJson('local', url, {
-      'X-Naver-Client-Id': this.cfg.searchClientId!,
-      'X-Naver-Client-Secret': this.cfg.searchClientSecret!,
-    })) as { items?: unknown } | null;
+    // NAVER API HUB(NCP, *.apigw.ntruss.com)는 NCP 헤더, 옛 개발자센터(openapi.naver.com)는 X-Naver 헤더를 쓴다.
+    const ncp = url.hostname.endsWith('.apigw.ntruss.com');
+    const headers: Record<string, string> = ncp
+      ? { 'X-NCP-APIGW-API-KEY-ID': this.cfg.searchClientId!, 'X-NCP-APIGW-API-KEY': this.cfg.searchClientSecret! }
+      : { 'X-Naver-Client-Id': this.cfg.searchClientId!, 'X-Naver-Client-Secret': this.cfg.searchClientSecret! };
+    const body = (await this.getJson('local', url, headers)) as { items?: unknown } | null;
     if (body && !Array.isArray(body.items)) this.onWarn({ api: 'local', reason: 'bad_body' });
     if (!body || !Array.isArray(body.items)) return null;
 
