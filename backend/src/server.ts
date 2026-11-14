@@ -1,7 +1,12 @@
 import { existsSync } from 'node:fs';
+import { isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildApp } from './app.js';
 import { loadConfig } from './config.js';
+import { loadCinemasCsv, type CinemaLoadStats } from './data/cinemaCsv.js';
+import type { ShowtimeProvider } from './data/provider.js';
+import { RealShowtimeProvider } from './data/real.js';
+import { TmdbMovieCatalog } from './data/tmdb.js';
 import { NaverPlaceProvider } from './places/provider.js';
 
 // backend/.env가 있으면 읽는다(src/와 dist/ 모두 한 단계 위). 이미 설정된 환경변수는 덮어쓰지 않는다.
@@ -10,8 +15,24 @@ if (existsSync(envPath)) process.loadEnvFile(envPath);
 
 const config = loadConfig();
 
+// SHOWTIME_PROVIDER=real: 영화는 TMDB, 영화관은 인허가 CSV, 회차는 데모 값.
+let provider: ShowtimeProvider | undefined;
+let cinemaStats: CinemaLoadStats | undefined;
+if (config.realData) {
+  const csvPath = isAbsolute(config.realData.cinemaCsvPath)
+    ? config.realData.cinemaCsvPath
+    : fileURLToPath(new URL(`../${config.realData.cinemaCsvPath}`, import.meta.url));
+  const { cinemas, stats } = await loadCinemasCsv(csvPath);
+  cinemaStats = stats;
+  provider = new RealShowtimeProvider(new TmdbMovieCatalog(config.realData.tmdb), cinemas);
+}
+
 const places = new NaverPlaceProvider(config.naver);
-const app = buildApp({ logger: true }, { frontendOrigins: config.frontendOrigins, places });
+const app = buildApp(
+  { logger: true },
+  { frontendOrigins: config.frontendOrigins, places, ...(provider ? { provider } : {}) },
+);
+app.log.info({ showtimeProvider: config.showtimeProvider, cinemas: cinemaStats }, '상영 데이터 설정');
 app.log.info(
   { placeSearch: { local: places.hasLocal, geocode: places.hasGeocode } },
   '장소 검색 설정 (키 값은 기록하지 않음)',

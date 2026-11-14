@@ -31,7 +31,7 @@ export function parseOrigins(raw: string | undefined): string[] {
   });
 }
 
-export type ShowtimeProviderName = 'sample';
+export type ShowtimeProviderName = 'sample' | 'real';
 export type RouteProviderName = 'mock';
 
 /** 네이버 API 설정. 키는 서버에서만 쓰고 응답·로그에 담지 않는다. 값이 없으면 undefined. */
@@ -56,6 +56,8 @@ export interface AppConfig {
   showtimeProvider: ShowtimeProviderName;
   routeProvider: RouteProviderName;
   naver: NaverConfig;
+  /** showtimeProvider가 'real'일 때만 있음 */
+  realData?: RealDataConfig;
 }
 
 const opt = (v: string | undefined): string | undefined => (v && v.trim() !== '' ? v.trim() : undefined);
@@ -83,11 +85,36 @@ export function loadNaverConfig(env: NodeJS.ProcessEnv = process.env): NaverConf
   };
 }
 
+export const DEFAULT_TMDB_API_URL = 'https://api.themoviedb.org/3';
+export const DEFAULT_TMDB_IMAGE_URL = 'https://image.tmdb.org/t/p/w342';
+/** backend/ 기준 상대 경로 */
+export const DEFAULT_CINEMA_CSV_PATH = 'data/cinemas.csv';
+
+/** SHOWTIME_PROVIDER=real 설정. 키 값은 응답·로그에 담지 않는다. */
+export interface RealDataConfig {
+  tmdb: { apiUrl: string; imageUrl: string; apiKey: string };
+  /** 영화관 CSV 경로(절대 경로 또는 backend/ 기준 상대 경로) */
+  cinemaCsvPath: string;
+}
+
+export function loadRealDataConfig(env: NodeJS.ProcessEnv = process.env): RealDataConfig {
+  const apiKey = opt(env.TMDB_API_KEY);
+  if (!apiKey) throw new Error('SHOWTIME_PROVIDER=real에는 TMDB_API_KEY가 필요합니다 (backend/.env).');
+  return {
+    tmdb: {
+      apiUrl: httpsUrl('TMDB_API_URL', env.TMDB_API_URL, DEFAULT_TMDB_API_URL),
+      imageUrl: httpsUrl('TMDB_IMAGE_URL', env.TMDB_IMAGE_URL, DEFAULT_TMDB_IMAGE_URL),
+      apiKey,
+    },
+    cinemaCsvPath: opt(env.CINEMA_CSV_PATH) ?? DEFAULT_CINEMA_CSV_PATH,
+  };
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const showtimeProvider = (env.SHOWTIME_PROVIDER?.trim() || 'sample') as string;
   const routeProvider = (env.ROUTE_PROVIDER?.trim() || 'mock') as string;
-  if (showtimeProvider !== 'sample') {
-    throw new Error(`지원하지 않는 SHOWTIME_PROVIDER: ${showtimeProvider} (사용 가능: sample)`);
+  if (showtimeProvider !== 'sample' && showtimeProvider !== 'real') {
+    throw new Error(`지원하지 않는 SHOWTIME_PROVIDER: ${showtimeProvider} (사용 가능: sample, real)`);
   }
   if (routeProvider !== 'mock') {
     throw new Error(`지원하지 않는 ROUTE_PROVIDER: ${routeProvider} (사용 가능: mock)`);
@@ -101,6 +128,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     showtimeProvider,
     routeProvider,
     naver: loadNaverConfig(env),
+    ...(showtimeProvider === 'real' ? { realData: loadRealDataConfig(env) } : {}),
   };
 }
 
