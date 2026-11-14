@@ -4,6 +4,8 @@
 
 **Demo (배포 사이트):** [https://candy3157.cloud/kirothon/](https://candy3157.cloud/kirothon/)
 
+**데모 영상:** [Google Drive에서 보기](https://drive.google.com/file/d/1HJ5g0RayNyNRUhpsx64HvqLM18i7GLOy/view?usp=share_link)
+
 **발표자료:** [PRESENTATION.pdf](PRESENTATION.pdf)
 
 ---
