@@ -5,8 +5,8 @@ import {
   addMinutes,
   businessTimeToInstant,
   businessTimeToIso,
+  businessDateOf,
   lastShowtimeStart,
-  seoulDateOf,
   toSeoulIso,
 } from '../time.js';
 import type {
@@ -142,8 +142,8 @@ export async function recommend(deps: RecommendDeps, req: RecommendationRequest)
   const sortBy: SortBy = req.sortBy ?? DEFAULT_SORT_BY;
   const departure = parseDeparture(req.departureTime, now);
 
-  // 오늘 영업일 밖의 출발시각 거부.
-  if (seoulDateOf(departure) !== seoulDateOf(now)) {
+  // 오늘 영업일(07시 ~ 다음 날 06:59) 밖의 출발시각 거부.
+  if (businessDateOf(departure) !== businessDateOf(now)) {
     throw new RecommendError(400, 'departure_out_of_range', '출발시각은 오늘 영업일 안이어야 합니다.');
   }
 
@@ -159,7 +159,7 @@ export async function recommend(deps: RecommendDeps, req: RecommendationRequest)
       movie: null,
       cinemas: [],
       showtimes: [],
-      businessDate: seoulDateOf(now),
+      businessDate: businessDateOf(now),
     };
   }
 

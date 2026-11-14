@@ -253,4 +253,16 @@ describe('AT-19 25:10 심야 회차', () => {
     expect(late.spareMinutes).toBe(55);
     expect(suwon.representativeShowtimeId).toBe(late.showtimeId);
   });
+
+  it('자정이 지나도(00:00 요청) 07시 전까지는 같은 영업일로 25:10 회차를 본다', async () => {
+    const at = () => new Date('2026-11-15T00:00:00+09:00');
+    const { deps } = setup({ now: at });
+    const r = await recommend(deps, req());
+    const suwon = [...r.cinemas, ...r.unreachableCinemas].find((c) => c.cinemaId === 'cin_suwon');
+    expect(suwon?.showtimes.some((s) => s.businessTime === '25:10')).toBe(true);
+    // 07시 이후는 다음 영업일이라 거부한다.
+    await expect(recommend(deps, req({ departureTime: '2026-11-15T07:30:00+09:00' }))).rejects.toMatchObject({
+      code: 'departure_out_of_range',
+    });
+  });
 });

@@ -80,7 +80,7 @@ GET /api/movies   GET /api/movies/{id}/availability   POST /api/recommendations 
 |---|---|---|---|
 | 400 | `invalid_request` | 입력 형식 오류 | `details[].field`를 입력 칸에 표시 |
 | 400 | `unsupported_date` | 오늘이 아닌 날짜 | 날짜 변경 불가 안내(MVP는 오늘만) |
-| 400 | `departure_out_of_range` | 오늘 영업일 밖이거나 오늘 마지막 회차 이후 출발 | 출발시각 재입력 |
+| 400 | `departure_out_of_range` | 오늘 영업일(07:00 ~ 다음 날 06:59) 밖이거나 오늘 마지막 회차 이후 출발 | 출발시각 재입력 |
 | 404 | `movie_not_found` | 알 수 없는 영화 | 영화 선택 화면으로 |
 | 404 | `result_expired` | 결과 만료·없음 | 6절 참고 |
 | 413 | `payload_too_large` | 본문이 큼 | 입력 확인 |

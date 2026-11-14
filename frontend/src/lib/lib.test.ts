@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { RankedCinema, Showtime } from '../api/types';
 import { reasonBadges, representative, unarrivableReason } from './recommend';
-import { clockTime, departureISO, hm, isPastTime, suggestTime, todayKST } from './time';
+import { businessDateKST, clockTime, departureISO, hm, isPastTime, suggestTime, todayKST } from './time';
 
 describe('clockTime', () => {
   it('자정 이후 심야 회차는 00시 기준으로 보여 준다', () => {
@@ -59,6 +59,31 @@ describe('time', () => {
   });
   it('추천 시각은 10분 단위로 올린다', () => {
     expect(suggestTime(30, now)).toBe('14:50');
+  });
+});
+
+describe('영업일 07시 기준', () => {
+  const kst = (s: string) => new Date(`${s}+09:00`);
+  it('00:00–06:59는 전날 영업일이다', () => {
+    expect(businessDateKST(kst('2026-11-15T00:30:00'))).toBe('2026-11-14');
+    expect(businessDateKST(kst('2026-11-15T06:59:00'))).toBe('2026-11-14');
+    expect(businessDateKST(kst('2026-11-15T07:00:00'))).toBe('2026-11-15');
+  });
+  it('밤에 자정 넘은 시각을 고르면 다음 날 새벽으로 보낸다', () => {
+    const late = kst('2026-11-14T23:30:00');
+    expect(departureISO('00:20', late)).toBe('2026-11-15T00:20:00+09:00');
+    expect(departureISO('23:50', late)).toBe('2026-11-14T23:50:00+09:00');
+    expect(isPastTime('00:20', late)).toBe(false);
+  });
+  it('새벽에 요청해도 같은 영업일로 계산한다', () => {
+    const dawn = kst('2026-11-15T01:00:00');
+    expect(departureISO('02:00', dawn)).toBe('2026-11-15T02:00:00+09:00');
+    expect(isPastTime('23:00', dawn)).toBe(true);
+  });
+  it('추천 시각은 자정은 넘고 07시는 넘지 않는다', () => {
+    expect(suggestTime(30, kst('2026-11-14T23:25:00'))).toBe('00:00');
+    expect(suggestTime(30, kst('2026-11-15T06:25:00'))).toBe('06:50');
+    expect(suggestTime(30, kst('2026-11-15T06:40:00'))).toBe('06:50');
   });
 });
 
