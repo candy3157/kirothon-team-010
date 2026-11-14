@@ -19,6 +19,19 @@ export function todayKST(now: Date = new Date()): string {
   return dateFmt.format(now);
 }
 
+/** 영업일이 바뀌는 시각(시). 백엔드 policy.BUSINESS_DAY_START_HOUR와 같아야 한다. */
+export const BUSINESS_DAY_START_HOUR = 4;
+
+/** 서울 기준 오늘 영업일 "YYYY-MM-DD". 00:00–03:59는 전날 영업일이다. */
+export function businessDateKST(now: Date = new Date()): string {
+  return todayKST(new Date(now.getTime() - BUSINESS_DAY_START_HOUR * 3600_000));
+}
+
+/** "YYYY-MM-DD" + days */
+function addDays(ymd: string, days: number): string {
+  return new Date(Date.parse(`${ymd}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
+}
+
 /** 출발 날짜를 고를 수 있는 범위: 오늘 + 6일 (백엔드 MAX_ADVANCE_DAYS와 같게) */
 export const MAX_ADVANCE_DAYS = 6;
 
@@ -37,9 +50,9 @@ export function isPastTime(local: string, now: Date = new Date()): boolean {
   return Date.parse(departureISO(local)) < now.getTime() - 60_000;
 }
 
-/** 고를 수 있는 범위(오늘 ~ 오늘+6일)를 넘었는지 */
+/** 마지막 조회 영업일 다음 날 03:59까지 허용한다. */
 export function isBeyondWindow(local: string, now: Date = new Date()): boolean {
-  return local.slice(0, 10) > dateInputMax(now).slice(0, 10);
+  return Date.parse(departureISO(local)) > Date.parse(departureISO(dateInputMax(now)));
 }
 
 /** 입력칸 min / max */
@@ -47,8 +60,8 @@ export function dateInputMin(now: Date = new Date()): string {
   return toLocalInput(now);
 }
 export function dateInputMax(now: Date = new Date()): string {
-  const last = new Date(now.getTime() + MAX_ADVANCE_DAYS * 86_400_000);
-  return `${todayKST(last)}T23:59`;
+  const endDate = addDays(businessDateKST(now), MAX_ADVANCE_DAYS + 1);
+  return `${endDate}T${pad2(BUSINESS_DAY_START_HOUR - 1)}:59`;
 }
 
 /** 지금 + min분을 10분 단위로 올린 "YYYY-MM-DDTHH:mm" */
@@ -88,3 +101,13 @@ export function addMinISO(iso: string, min: number): string {
 }
 
 export const pad2 = (n: number) => String(n).padStart(2, '0');
+
+/**
+ * 시간표 표기 → 화면 표기. 자정 이후 심야 회차(24:00 이상)는 실제 시각으로 바꾼다.
+ * 예: "25:10" → "01:10", "24:15" → "00:15", "14:40" → "14:40". 형식이 다르면 그대로 둔다.
+ */
+export function clockTime(businessTime: string): string {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(businessTime);
+  if (!m) return businessTime;
+  return `${pad2(Number(m[1]) % 24)}:${m[2]}`;
+}

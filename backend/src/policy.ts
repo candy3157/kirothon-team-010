@@ -24,6 +24,12 @@ export const TIME_ZONE_OFFSET = '+09:00';
  */
 export const MAX_ADVANCE_DAYS = 6;
 
+/**
+ * 영업일이 바뀌는 시각(시, Asia/Seoul). 이 시각 전(00:00–03:59)은 전날 영업일이다.
+ * 예: 11-15 01:00 요청 → 영업일 11-14. 시간표 '25:10' 회차를 계속 볼 수 있다.
+ */
+export const BUSINESS_DAY_START_HOUR = 4;
+
 /** 추천 결과 보관 시간(초). 만료 후 GET은 404 result_expired. */
 export const RESULT_TTL_SECONDS = 30 * 60;
 

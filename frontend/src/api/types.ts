@@ -151,3 +151,16 @@ export interface ErrorResponse {
   requestId?: string;
   details?: { field: string; issue: string }[];
 }
+
+/** GET /api/places 결과 한 개 (좌표 WGS84) */
+export interface PlaceResult {
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  source: 'local' | 'geocode';
+}
+
+export interface PlaceListResponse {
+  places: PlaceResult[];
+}

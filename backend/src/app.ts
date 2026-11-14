@@ -2,10 +2,18 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
-import { DEFAULT_FRONTEND_ORIGIN, GLOBAL_BODY_LIMIT, createRouteProvider, createShowtimeProvider } from './config.js';
+import {
+  DEFAULT_FRONTEND_ORIGINS,
+  GLOBAL_BODY_LIMIT,
+  createRouteProvider,
+  createShowtimeProvider,
+  loadNaverConfig,
+} from './config.js';
 import type { ShowtimeProvider } from './data/provider.js';
 import { sendError } from './errors.js';
+import { NaverPlaceProvider, type PlaceSearchProvider } from './places/provider.js';
 import { registerMovieRoutes } from './routes/movies.js';
+import { registerPlaceRoutes } from './routes/places.js';
 import { registerRecommendationRoutes, type RateLimitOptions } from './routes/recommendations.js';
 import type { RouteProvider } from './routing/provider.js';
 import { ResultStore } from './services/resultStore.js';
@@ -17,6 +25,9 @@ export interface AppDeps {
   store?: ResultStore;
   postLimit?: RateLimitOptions;
   getLimit?: RateLimitOptions;
+  /** 출발지 장소 검색. 생략하면 키 없는 네이버 제공자(검색 시 503). */
+  places?: PlaceSearchProvider;
+  placesLimit?: RateLimitOptions;
   /** CORS 허용 origin 목록. 생략하면 개발 기본값. 와일드카드 금지. */
   frontendOrigins?: string[];
 }
@@ -26,7 +37,7 @@ export function buildApp(opts: FastifyServerOptions = {}, deps: AppDeps = {}): F
   const now = deps.now ?? (() => new Date());
   const provider = deps.provider ?? createShowtimeProvider('sample', now);
 
-  const origins = deps.frontendOrigins ?? [DEFAULT_FRONTEND_ORIGIN];
+  const origins = deps.frontendOrigins ?? [...DEFAULT_FRONTEND_ORIGINS];
   if (origins.some((o) => o === '*' || o.includes('*'))) throw new Error('CORS 와일드카드 origin은 허용되지 않습니다.');
   app.register(helmet);
   app.register(cors, {
@@ -51,6 +62,10 @@ export function buildApp(opts: FastifyServerOptions = {}, deps: AppDeps = {}): F
       now,
       ...(deps.postLimit ? { postLimit: deps.postLimit } : {}),
       ...(deps.getLimit ? { getLimit: deps.getLimit } : {}),
+    });
+    registerPlaceRoutes(scope, {
+      places: deps.places ?? new NaverPlaceProvider(loadNaverConfig({})),
+      ...(deps.placesLimit ? { limit: deps.placesLimit } : {}),
     });
   });
   app.setNotFoundHandler((req, reply) =>

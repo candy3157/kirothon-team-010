@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { ApiError, api } from '../api/client';
 import type { TransportMode } from '../api/types';
 import { Icon } from '../components/Icon';
 import { Poster } from '../components/Poster';
@@ -14,6 +15,16 @@ interface Props {
   onSubmit: () => void;
 }
 
+type RemoteStatus = 'idle' | 'loading' | 'ok' | 'off' | 'error';
+
+interface Suggestion {
+  label: string;
+  /** 주소 (이름과 다를 때만) */
+  sub?: string;
+  latitude: number;
+  longitude: number;
+}
+
 /** S02 출발 조건 */
 export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
   const m = ctx.movie!;
@@ -21,7 +32,40 @@ export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
   const [showSuggest, setShowSuggest] = useState(false);
   const [geo, setGeo] = useState<'idle' | 'loading' | 'fail'>('idle');
 
-  const suggestions = useMemo(() => (q.trim() ? PLACES.filter((p) => p.label.includes(q.trim())) : PLACES), [q]);
+  const [remote, setRemote] = useState<{ status: RemoteStatus; items: Suggestion[] }>({ status: 'idle', items: [] });
+
+  // 2자 이상이면 서버 장소 검색(네이버). 입력이 멈추고 300ms 뒤에 부르고, 이전 요청은 취소한다.
+  useEffect(() => {
+    const term = q.trim();
+    if (term.length < 2) {
+      setRemote({ status: 'idle', items: [] });
+      return;
+    }
+    const ac = new AbortController();
+    setRemote((r) => ({ status: 'loading', items: r.items }));
+    const t = setTimeout(() => {
+      api
+        .searchPlaces(term, ac.signal)
+        .then((res) =>
+          setRemote({
+            status: 'ok',
+            items: res.places.map((p) => ({ label: p.name, sub: p.address !== p.name ? p.address : undefined, latitude: p.latitude, longitude: p.longitude })),
+          }),
+        )
+        .catch((e) => {
+          if (ac.signal.aborted) return;
+          // 503 = 서버에 키 없음. 그 밖은 일시 오류. 둘 다 기본 장소 목록으로 대신한다.
+          setRemote({ status: e instanceof ApiError && e.status === 503 ? 'off' : 'error', items: [] });
+        });
+    }, 300);
+    return () => {
+      clearTimeout(t);
+      ac.abort();
+    };
+  }, [q]);
+
+  const local = useMemo<Suggestion[]>(() => (q.trim() ? PLACES.filter((p) => p.label.includes(q.trim())) : PLACES), [q]);
+  const suggestions = remote.status === 'ok' ? remote.items : local;
 
   const past = ctx.departure !== 'now' && isPastTime(ctx.departure);
   const beyond = ctx.departure !== 'now' && isBeyondWindow(ctx.departure);
@@ -74,7 +118,7 @@ export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
           <div className="origin-field">
           <label className="field" style={{ padding: '8px 12px' }}>
             <input
-              placeholder="장소 검색"
+              placeholder="장소 이름이나 주소 검색"
               aria-label="출발지 검색"
               autoComplete="off"
               value={q}
@@ -85,23 +129,34 @@ export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
           </label>
         {showSuggest && (
           <div className="suggest" role="listbox">
-            {suggestions.length ? (
+            {remote.status === 'loading' && remote.items.length === 0 ? (
+              <button disabled>
+                <span className="spinner" /> 장소 찾는 중…
+              </button>
+            ) : suggestions.length ? (
               suggestions.map((p) => (
                 <button
-                  key={p.label}
+                  key={`${p.label}|${p.latitude},${p.longitude}`}
                   role="option"
                   aria-selected={ctx.origin?.label === p.label}
                   onClick={() => {
-                    onChange({ origin: { ...p } });
+                    onChange({ origin: { label: p.label, latitude: p.latitude, longitude: p.longitude } });
+                    setGeo('idle'); // 직접 골랐으면 위치 실패 안내는 지운다
                     setQ('');
                     setShowSuggest(false);
                   }}
                 >
                   <Icon name="pin" /> {p.label}
+                  {p.sub && <span className="ms"> · {p.sub}</span>}
                 </button>
               ))
             ) : (
               <button disabled>일치하는 장소가 없어요</button>
+            )}
+            {(remote.status === 'off' || remote.status === 'error') && (
+              <button disabled>
+                {remote.status === 'off' ? '장소 검색이 설정되지 않아' : '장소 검색에 실패해'} 기본 장소만 보여요
+              </button>
             )}
           </div>
         )}
