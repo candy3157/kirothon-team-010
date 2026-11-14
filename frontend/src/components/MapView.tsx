@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Coordinates, RankedCinema, UnroutableCinema } from '../api/types';
 import { distanceKm, offsetKm } from '../lib/geo';
-import { representative } from '../lib/recommend';
+import { initialViewPoints, representative } from '../lib/recommend';
 import { loadNaverMaps, naverMapScriptUrl, onNaverAuthFailure, type NaverMapState } from '../lib/naverMap';
 import { clockTime, pad2 } from '../lib/time';
 import { Icon } from './Icon';
@@ -149,7 +149,8 @@ function NaverMapView({ origin, cinemas, unroutable, selectedId, loading, topIns
   // 결과가 바뀌면 출발지와 모든 영화관이 보이게
   useEffect(() => {
     const map = mapRef.current;
-    const pts = [...cinemas, ...unroutable].map((c) => c.location);
+    // 결과 전체가 아닌 상위 5곳에 맞춘다. 나머지 핀도 지도에는 있고, 축소하면 보인다.
+    const pts = initialViewPoints(origin, cinemas, unroutable);
     if (!map) return;
     if (pts.length === 0) {
       map.setCenter(ll(origin));
@@ -214,10 +215,10 @@ function FakeMapView({ origin, cinemas, unroutable, selectedId, loading, topInse
     return () => ro.disconnect();
   }, []);
 
-  // 모든 영화관이 들어오도록 축척을 정한다 (최소 3km)
+  // 상위 5곳이 들어오도록 축척을 정한다 (최소 3km). 나머지는 축소하면 보인다.
   const maxKm = useMemo(() => {
-    const all = [...cinemas, ...unroutable].map((c) => distanceKm(origin, c.location));
-    return Math.max(3, ...all) * 1.15;
+    const top = initialViewPoints(origin, cinemas, unroutable).map((p) => distanceKm(origin, p));
+    return Math.max(3, ...top) * 1.15;
   }, [origin, cinemas, unroutable]);
   const s = (Math.min(size.w, size.h || 1) / 2 / maxKm) * zoom; // px per km
   const proj = (p: Coordinates) => {
@@ -243,7 +244,8 @@ function FakeMapView({ origin, cinemas, unroutable, selectedId, loading, topInse
   }, [cinemas, unroutable]);
 
   const zoomBy = (f: number) => {
-    setZoom((z) => Math.min(4, Math.max(0.4, z * f)));
+    // 첫 화면은 상위 5곳 기준이라, 먼 영화관까지 보려면 더 많이 축소할 수 있어야 한다.
+    setZoom((z) => Math.min(4, Math.max(0.02, z * f)));
     setPan((p) => ({ x: p.x * f, y: p.y * f }));
   };
 
