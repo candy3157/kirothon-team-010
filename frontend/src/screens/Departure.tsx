@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { ApiError, api } from '../api/client';
 import type { TransportMode } from '../api/types';
 import { Icon } from '../components/Icon';
 import { Poster } from '../components/Poster';
@@ -14,6 +15,16 @@ interface Props {
   onSubmit: () => void;
 }
 
+type RemoteStatus = 'idle' | 'loading' | 'ok' | 'off' | 'error';
+
+interface Suggestion {
+  label: string;
+  /** 주소 (이름과 다를 때만) */
+  sub?: string;
+  latitude: number;
+  longitude: number;
+}
+
 /** S02 출발 조건 */
 export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
   const m = ctx.movie!;
@@ -21,7 +32,40 @@ export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
   const [showSuggest, setShowSuggest] = useState(false);
   const [geo, setGeo] = useState<'idle' | 'loading' | 'fail'>('idle');
 
-  const suggestions = useMemo(() => (q.trim() ? PLACES.filter((p) => p.label.includes(q.trim())) : PLACES), [q]);
+  const [remote, setRemote] = useState<{ status: RemoteStatus; items: Suggestion[] }>({ status: 'idle', items: [] });
+
+  // 2자 이상이면 서버 장소 검색(네이버). 입력이 멈추고 300ms 뒤에 부르고, 이전 요청은 취소한다.
+  useEffect(() => {
+    const term = q.trim();
+    if (term.length < 2) {
+      setRemote({ status: 'idle', items: [] });
+      return;
+    }
+    const ac = new AbortController();
+    setRemote((r) => ({ status: 'loading', items: r.items }));
+    const t = setTimeout(() => {
+      api
+        .searchPlaces(term, ac.signal)
+        .then((res) =>
+          setRemote({
+            status: 'ok',
+            items: res.places.map((p) => ({ label: p.name, sub: p.address !== p.name ? p.address : undefined, latitude: p.latitude, longitude: p.longitude })),
+          }),
+        )
+        .catch((e) => {
+          if (ac.signal.aborted) return;
+          // 503 = 서버에 키 없음. 그 밖은 일시 오류. 둘 다 기본 장소 목록으로 대신한다.
+          setRemote({ status: e instanceof ApiError && e.status === 503 ? 'off' : 'error', items: [] });
+        });
+    }, 300);
+    return () => {
+      clearTimeout(t);
+      ac.abort();
+    };
+  }, [q]);
+
+  const local = useMemo<Suggestion[]>(() => (q.trim() ? PLACES.filter((p) => p.label.includes(q.trim())) : PLACES), [q]);
+  const suggestions = remote.status === 'ok' ? remote.items : local;
 
   const past = ctx.departure !== 'now' && isPastTime(ctx.departure);
   const valid = !!(ctx.movie && ctx.origin && ctx.transportMode) && !past;
@@ -40,10 +84,12 @@ export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
   };
 
   return (
-    <section className="screen" aria-labelledby="s02h">
+    <section className="screen dep-screen" aria-labelledby="s02h">
       <div className="wrap">
         <Steps step={2} />
+        <i className="sp sp-a" aria-hidden="true" />
         <h1 id="s02h">어디서, 어떻게 출발하나요?</h1>
+        <i className="sp sp-b" aria-hidden="true" />
 
         <div className="picked">
           <Poster movie={m} small />
@@ -57,6 +103,7 @@ export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
         </div>
 
         {/* 출발지 */}
+        <i className="sp sp-c" aria-hidden="true" />
         <div className="label">출발지</div>
         <div className="origin-row">
           <button
@@ -66,39 +113,54 @@ export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
           >
             <Icon name="pin" /> 현재 위치 사용
           </button>
-          <label className="field" style={{ flex: 1, padding: '8px 12px' }}>
+          {/* 장소 목록은 아래 내용을 밀지 않고 위에 떠서 열린다 (화면 스크롤 방지) */}
+          <div className="origin-field">
+          <label className="field" style={{ padding: '8px 12px' }}>
             <input
-              placeholder="장소 검색"
+              placeholder="장소 이름이나 주소 검색"
               aria-label="출발지 검색"
               autoComplete="off"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               onFocus={() => setShowSuggest(true)}
+              onBlur={() => setTimeout(() => setShowSuggest(false), 150)}
             />
           </label>
-        </div>
         {showSuggest && (
           <div className="suggest" role="listbox">
-            {suggestions.length ? (
+            {remote.status === 'loading' && remote.items.length === 0 ? (
+              <button disabled>
+                <span className="spinner" /> 장소 찾는 중…
+              </button>
+            ) : suggestions.length ? (
               suggestions.map((p) => (
                 <button
-                  key={p.label}
+                  key={`${p.label}|${p.latitude},${p.longitude}`}
                   role="option"
                   aria-selected={ctx.origin?.label === p.label}
                   onClick={() => {
-                    onChange({ origin: { ...p } });
+                    onChange({ origin: { label: p.label, latitude: p.latitude, longitude: p.longitude } });
+                    setGeo('idle'); // 직접 골랐으면 위치 실패 안내는 지운다
                     setQ('');
                     setShowSuggest(false);
                   }}
                 >
                   <Icon name="pin" /> {p.label}
+                  {p.sub && <span className="ms"> · {p.sub}</span>}
                 </button>
               ))
             ) : (
               <button disabled>일치하는 장소가 없어요</button>
             )}
+            {(remote.status === 'off' || remote.status === 'error') && (
+              <button disabled>
+                {remote.status === 'off' ? '장소 검색이 설정되지 않아' : '장소 검색에 실패해'} 기본 장소만 보여요
+              </button>
+            )}
           </div>
         )}
+          </div>
+        </div>
         {geo === 'loading' && (
           <div className="notice">
             <span className="spinner" />
@@ -116,6 +178,7 @@ export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
         )}
 
         {/* 이동수단 */}
+        <i className="sp sp-c" aria-hidden="true" />
         <div className="label">이동수단</div>
         <div className="seg" role="group" aria-label="이동수단">
           {(Object.keys(MODE) as TransportMode[]).map((k) => (
@@ -127,6 +190,7 @@ export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
         </div>
 
         {/* 출발 시각 (오늘만) */}
+        <i className="sp sp-c" aria-hidden="true" />
         <div className="label">출발 시각 · 오늘</div>
         <div className="chips">
           <button className="chip" aria-pressed={ctx.departure === 'now'} onClick={() => onChange({ departure: 'now' })}>
@@ -152,6 +216,7 @@ export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
         {past && <div className="notice bad">지난 시각이에요. 출발 시각을 다시 선택해 주세요.</div>}
       </div>
 
+      {/* 한 화면 레이아웃의 맨 아래 칸 (고정 위치 대신 흐름 안에 둔다) */}
       <div className="cta-bar">
         <div className="inner">
           <button className="btn primary" disabled={!valid} onClick={onSubmit}>

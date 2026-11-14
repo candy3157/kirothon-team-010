@@ -128,6 +128,8 @@ h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.035em; line-height: 1
 
 .map { position: absolute; inset: 0; background: #101010; overflow: hidden; touch-action: none; cursor: grab; }
 .map.dragging { cursor: grabbing; }
+.map.naver { cursor: auto; }
+.map.naver .pin { cursor: pointer; }
 .world { position: absolute; left: 50%; top: 50%; width: 0; height: 0; will-change: transform; transition: transform 0.35s ease; }
 .map.dragging .world { transition: none; }
 .world svg.bg { position: absolute; left: -2000px; top: -2000px; width: 4000px; height: 4000px; }
@@ -248,7 +250,65 @@ h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.035em; line-height: 1
 .toast { position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%) translateY(20px); opacity: 0; background: #fff; color: #111; padding: 10px 16px; border-radius: 4px; font-size: 14px; font-weight: 600; z-index: 60; transition: 0.25s; pointer-events: none; }
 .toast.on { opacity: 1; transform: translateX(-50%); }
 
+/* =========================================================
+   누름 애니메이션 (A · 눌림)
+   - 누르는 동안 살짝 작아짐, 선택 색은 0.2초 동안 부드럽게 바뀜
+   - 고른 이동수단 아이콘·회차 시각이 살짝 뛰어오름
+   ========================================================= */
+.btn, .chip, .seg button, .card, .showtime, .movie, .map-tools button, .research button {
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.14s cubic-bezier(0.2, 0.7, 0.2, 1), background-color 0.22s ease, border-color 0.22s ease, color 0.22s ease, opacity 0.15s;
+}
+.btn:active:not(:disabled), .chip:active, .seg button:active, .showtime:active:not(:disabled),
+.map-tools button:active, .research button:active { transform: scale(0.96); }
+.card:active:not(.dim), .movie:active { transform: scale(0.985); }
+.seg button[aria-pressed='true'] .i { animation: hop 0.35s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.showtime[aria-pressed='true'] b { display: inline-block; animation: hop 0.3s ease; }
+@keyframes hop { 40% { transform: translateY(-3px); } }
+
+/* =========================================================
+   화면 전환 (B · 밀기)
+   - 다음 화면은 오른쪽에서, 이전 화면은 왼쪽에서 0.28초 동안 밀려 들어옴
+   - 바텀시트 안(목록 ↔ 영화관 상세)도 같은 방향 규칙
+   - 들어오는 화면만 움직인다 (나가는 화면은 바로 사라짐)
+   ========================================================= */
+#root { overflow-x: clip; }
+.page { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+.page > .screen { flex: 1; }
+.pane { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.page.fwd, .pane.fwd { animation: slideInR 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) backwards; }
+.page.back, .pane.back { animation: slideInL 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) backwards; }
+@keyframes slideInR { from { transform: translateX(28%); opacity: 0; } }
+@keyframes slideInL { from { transform: translateX(-28%); opacity: 0; } }
+
 @media (prefers-reduced-motion: reduce) {
+  .page.fwd, .page.back, .pane.fwd, .pane.back { animation: none; }
   .splash-logo, .splash-slogan { animation: none; opacity: 1; transform: none; }
   .splash, .world, .sheet { transition: none; }
+  .btn, .chip, .seg button, .card, .showtime, .movie, .map-tools button, .research button { transition: none; transform: none !important; }
+  .seg button[aria-pressed='true'] .i, .showtime[aria-pressed='true'] b { animation: none; }
 }
+
+/* =========================================================
+   S02 출발 조건 — 한 화면에 꽉 차게, 스크롤 없음
+   - 맨 위 단계 표시줄 위치는 그대로(28px)
+   - 요소 사이 간격만 넓힘. 버튼·칸·글자 크기는 그대로
+   - 큰 간격은 늘어나는 빈칸(.sp)이 맡는다. 화면이 크면 제안 간격까지 벌어지고,
+     작으면 최소 간격까지 줄어서 스크롤이 생기지 않는다
+   ========================================================= */
+.dep-screen { height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; }
+.dep-screen .wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 28px 18px 16px; overflow-y: auto; } /* 아주 작은 화면(높이 약 620px 미만)에서만 안쪽 스크롤 */
+.dep-screen h1 { margin: 0; }
+.dep-screen .label { margin: 0 0 14px; }
+.dep-screen .origin-set { margin-top: 14px; }
+.dep-screen .notice { margin-top: 10px; }
+.sp { display: block; flex: 1 1 0; }
+.sp-a { min-height: 8px; max-height: 36px; } /* 단계 표시줄 ↔ 제목 */
+.sp-b { min-height: 10px; max-height: 32px; } /* 제목 ↔ 영화 칸 */
+.sp-c { min-height: 10px; max-height: 44px; } /* 앞 항목 ↔ 항목 이름 */
+.dep-screen .seg, .dep-screen .chips { gap: 10px; }
+.dep-screen .origin-row { position: relative; }
+.dep-screen .origin-field { flex: 1; position: relative; }
+.dep-screen .origin-field .field { width: 100%; }
+.dep-screen .suggest { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 30; max-height: min(260px, 40vh); overflow-y: auto; margin: 0; }
+.dep-screen .cta-bar { position: static; flex: none; }
