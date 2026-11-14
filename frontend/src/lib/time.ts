@@ -20,9 +20,9 @@ export function todayKST(now: Date = new Date()): string {
 }
 
 /** 영업일이 바뀌는 시각(시). 백엔드 policy.BUSINESS_DAY_START_HOUR와 같아야 한다. */
-export const BUSINESS_DAY_START_HOUR = 7;
+export const BUSINESS_DAY_START_HOUR = 4;
 
-/** 서울 기준 오늘 영업일 "YYYY-MM-DD". 00:00–06:59는 전날 영업일이다. */
+/** 서울 기준 오늘 영업일 "YYYY-MM-DD". 00:00–03:59는 전날 영업일이다. */
 export function businessDateKST(now: Date = new Date()): string {
   return todayKST(new Date(now.getTime() - BUSINESS_DAY_START_HOUR * 3600_000));
 }
@@ -34,7 +34,7 @@ function addDays(ymd: string, days: number): string {
 
 /**
  * 오늘 영업일의 "HH:mm" → "YYYY-MM-DDTHH:mm:00+09:00".
- * 07시 전 시각(00:00–06:59)은 영업일 다음 날 새벽으로 본다.
+ * 04시 전 시각(00:00–03:59)은 영업일 다음 날 새벽으로 본다.
  * 예: 11-14 23:30에 "00:20" → 2026-11-15T00:20:00+09:00
  */
 export function departureISO(hhmm: string, now: Date = new Date()): string {
@@ -48,14 +48,14 @@ export function isPastTime(hhmm: string, now: Date = new Date()): boolean {
   return Date.parse(departureISO(hhmm, now)) < now.getTime() - 60_000;
 }
 
-/** 지금 + min분을 10분 단위로 올린 "HH:mm" (영업일을 넘기면 06:50) */
+/** 지금 + min분을 10분 단위로 올린 "HH:mm" (영업일을 넘기면 03:50) */
 export function suggestTime(min = 30, now: Date = new Date()): string {
   const t = new Date(now.getTime() + min * 60_000);
-  if (businessDateKST(t) !== businessDateKST(now)) return '06:50';
+  if (businessDateKST(t) !== businessDateKST(now)) return '03:50';
   const [h, m] = hm(t).split(':').map(Number);
   const up = Math.ceil(m / 10) * 10;
   if (up === 60) {
-    if (h === BUSINESS_DAY_START_HOUR - 1) return '06:50'; // 07:00은 다음 영업일
+    if (h === BUSINESS_DAY_START_HOUR - 1) return '03:50'; // 04:00은 다음 영업일
     return `${pad2((h + 1) % 24)}:00`;
   }
   return `${String(h).padStart(2, '0')}:${String(up).padStart(2, '0')}`;

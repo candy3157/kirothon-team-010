@@ -38,8 +38,8 @@ export function seoulDateOf(instant: Date): string {
 }
 
 /**
- * 실제 시각이 속한 영업일(YYYY-MM-DD). 영업일은 BUSINESS_DAY_START_HOUR(07시)에 바뀐다.
- * 예: 11-15 06:59 KST → '2026-11-14', 11-15 07:00 KST → '2026-11-15'.
+ * 실제 시각이 속한 영업일(YYYY-MM-DD). 영업일은 BUSINESS_DAY_START_HOUR(04시)에 바뀐다.
+ * 예: 11-15 03:59 KST → '2026-11-14', 11-15 04:00 KST → '2026-11-15'.
  */
 export function businessDateOf(instant: Date): string {
   return seoulDateOf(new Date(instant.getTime() - BUSINESS_DAY_START_HOUR * 3600_000));

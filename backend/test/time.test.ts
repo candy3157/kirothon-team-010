@@ -32,19 +32,19 @@ describe('AT-19: 25:10 심야 회차', () => {
 });
 
 describe('자정 경계', () => {
-  it('영업일은 07시에 바뀐다(자정에는 안 바뀐다)', () => {
+  it('영업일은 04시에 바뀐다(자정에는 안 바뀐다)', () => {
     expect(todayBusinessDate(kst('2026-11-14T23:59:59'))).toBe('2026-11-14');
     expect(todayBusinessDate(kst('2026-11-15T00:00:00'))).toBe('2026-11-14');
-    expect(todayBusinessDate(kst('2026-11-15T06:59:59'))).toBe('2026-11-14');
-    expect(todayBusinessDate(kst('2026-11-15T07:00:00'))).toBe('2026-11-15');
+    expect(todayBusinessDate(kst('2026-11-15T03:59:59'))).toBe('2026-11-14');
+    expect(todayBusinessDate(kst('2026-11-15T04:00:00'))).toBe('2026-11-15');
   });
 
-  it('UTC 날짜와 KST 날짜가 다른 시각도 KST 07시 기준으로 판정한다', () => {
+  it('UTC 날짜와 KST 날짜가 다른 시각도 KST 04시 기준으로 판정한다', () => {
     // 2026-11-14T15:30Z = 2026-11-15 00:30 KST → 영업일 11-14
     expect(todayBusinessDate(new Date('2026-11-14T15:30:00Z'))).toBe('2026-11-14');
     expect(isTodayBusinessDate('2026-11-14', new Date('2026-11-14T15:30:00Z'))).toBe(true);
-    // 2026-11-14T22:00Z = 2026-11-15 07:00 KST → 영업일 11-15
-    expect(isTodayBusinessDate('2026-11-14', new Date('2026-11-14T22:00:00Z'))).toBe(false);
+    // 2026-11-14T19:00Z = 2026-11-15 04:00 KST → 영업일 11-15
+    expect(isTodayBusinessDate('2026-11-14', new Date('2026-11-14T19:00:00Z'))).toBe(false);
   });
 
   it('새벽 00:30 요청에도 25:10 회차가 남아 있다', () => {

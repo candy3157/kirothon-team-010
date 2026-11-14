@@ -38,7 +38,7 @@ export interface ShowtimeProvider {
   getMovieShowtimes(movieId: string): Promise<MovieShowtimesResult>;
 }
 
-/** 현재 시각 기준 오늘 영업일(Asia/Seoul, 07시 기준, YYYY-MM-DD). */
+/** 현재 시각 기준 오늘 영업일(Asia/Seoul, 04시 기준, YYYY-MM-DD). */
 export function todayInSeoul(now: Date = new Date()): string {
   return todayBusinessDate(now);
 }
