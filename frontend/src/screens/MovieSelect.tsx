@@ -49,11 +49,7 @@ export function MovieSelect({ selectedId, onPick }: { selectedId?: string; onPic
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
-          {q && (
-            <button className="btn sm ghost" aria-label="검색어 지우기" onClick={() => setQ('')}>
-              <Icon name="close" />
-            </button>
-          )}
+          {/* 지우기는 검색칸 자체의 X(손그림으로 바꿈, styles.css)만 쓴다. 따로 두던 X 버튼은 중복이라 뺐다 */}
         </label>
 
         <div className="grid">

@@ -312,3 +312,10 @@ h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.035em; line-height: 1
 .dep-screen .origin-field .field { width: 100%; }
 .dep-screen .suggest { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 30; max-height: min(260px, 40vh); overflow-y: auto; margin: 0; }
 .dep-screen .cta-bar { position: static; flex: none; }
+
+/* 검색칸 지우기 X: 브라우저 기본 아이콘 대신 손그림 */
+input[type='search']::-webkit-search-cancel-button {
+  -webkit-appearance: none; appearance: none; width: 18px; height: 18px; cursor: pointer; opacity: 0.8;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2' stroke-linecap='round'><path d='M6 6.3c4 3.7 8 7.6 12 11.5M17.8 6c-3.9 4-7.8 8-11.7 12.1'/></svg>") center / contain no-repeat;
+}
+input[type='search']::-webkit-search-cancel-button:hover { opacity: 1; }
