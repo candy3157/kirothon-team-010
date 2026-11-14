@@ -69,9 +69,13 @@ function NaverMapView({ origin, cinemas, unroutable, selectedId, loading, topIns
   const N = window.naver!.maps;
   const ll = (p: Coordinates) => new N.LatLng(p.latitude, p.longitude);
 
-  // 지도는 한 번만 만든다
+  // 지도는 한 번만 만든다. 개발 모드(StrictMode)는 effect를 두 번 돌리므로,
+  // destroy()한 요소를 다시 쓰지 않도록 실행마다 새 상자를 만든다.
   useEffect(() => {
-    const map = new N.Map(ref.current!, {
+    const host = document.createElement('div');
+    host.style.cssText = 'position:absolute;inset:0';
+    ref.current!.appendChild(host);
+    const map = new N.Map(host, {
       center: ll(origin),
       zoom: 13,
       scaleControl: false,
@@ -86,6 +90,7 @@ function NaverMapView({ origin, cinemas, unroutable, selectedId, loading, topIns
       markers.current.forEach((m) => m.setMap(null));
       originMarker.current?.setMap(null);
       map.destroy();
+      host.remove();
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
