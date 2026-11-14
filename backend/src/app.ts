@@ -2,7 +2,7 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
-import { DEFAULT_FRONTEND_ORIGIN, GLOBAL_BODY_LIMIT, createRouteProvider, createShowtimeProvider } from './config.js';
+import { DEFAULT_FRONTEND_ORIGINS, GLOBAL_BODY_LIMIT, createRouteProvider, createShowtimeProvider } from './config.js';
 import type { ShowtimeProvider } from './data/provider.js';
 import { sendError } from './errors.js';
 import { registerMovieRoutes } from './routes/movies.js';
@@ -26,7 +26,7 @@ export function buildApp(opts: FastifyServerOptions = {}, deps: AppDeps = {}): F
   const now = deps.now ?? (() => new Date());
   const provider = deps.provider ?? createShowtimeProvider('sample', now);
 
-  const origins = deps.frontendOrigins ?? [DEFAULT_FRONTEND_ORIGIN];
+  const origins = deps.frontendOrigins ?? [...DEFAULT_FRONTEND_ORIGINS];
   if (origins.some((o) => o === '*' || o.includes('*'))) throw new Error('CORS 와일드카드 origin은 허용되지 않습니다.');
   app.register(helmet);
   app.register(cors, {

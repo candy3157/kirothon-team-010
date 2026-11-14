@@ -3,6 +3,7 @@ import { buildApp } from '../src/app.js';
 import { loadConfig, parseOrigins } from '../src/config.js';
 
 const ALLOWED = 'http://localhost:5173';
+const ALLOWED_LOOPBACK = 'http://127.0.0.1:5173';
 const DENIED = 'http://evil.example';
 
 describe('CORS', () => {
@@ -11,6 +12,12 @@ describe('CORS', () => {
     const res = await app.inject({ method: 'GET', url: '/api/health', headers: { origin: ALLOWED } });
     expect(res.statusCode).toBe(200);
     expect(res.headers['access-control-allow-origin']).toBe(ALLOWED);
+  });
+
+  it('127.0.0.1:5173도 기본으로 허용한다', async () => {
+    const app = buildApp();
+    const res = await app.inject({ method: 'GET', url: '/api/health', headers: { origin: ALLOWED_LOOPBACK } });
+    expect(res.headers['access-control-allow-origin']).toBe(ALLOWED_LOOPBACK);
   });
 
   it('허용되지 않은 origin에는 CORS 헤더가 없다(와일드카드 아님)', async () => {
@@ -85,7 +92,7 @@ describe('loadConfig', () => {
   it('기본값은 127.0.0.1, 5173 origin, sample/mock', () => {
     const c = loadConfig({});
     expect(c.host).toBe('127.0.0.1');
-    expect(c.frontendOrigins).toEqual([ALLOWED]);
+    expect(c.frontendOrigins).toEqual([ALLOWED, ALLOWED_LOOPBACK]);
     expect(c.showtimeProvider).toBe('sample');
     expect(c.routeProvider).toBe('mock');
   });

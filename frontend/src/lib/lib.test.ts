@@ -1,7 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import type { RankedCinema, Showtime } from '../api/types';
 import { reasonBadges, representative, unarrivableReason } from './recommend';
-import { departureISO, hm, isPastTime, suggestTime, todayKST } from './time';
+import { clockTime, departureISO, hm, isPastTime, suggestTime, todayKST } from './time';
+
+describe('clockTime', () => {
+  it('자정 이후 심야 회차는 00시 기준으로 보여 준다', () => {
+    expect(clockTime('24:15')).toBe('00:15');
+    expect(clockTime('25:10')).toBe('01:10');
+    expect(clockTime('24:00')).toBe('00:00');
+  });
+  it('보통 회차와 형식이 다른 값은 그대로 둔다', () => {
+    expect(clockTime('14:40')).toBe('14:40');
+    expect(clockTime('00:15')).toBe('00:15');
+    expect(clockTime('')).toBe('');
+  });
+});
 
 const st = (id: string, start: string, verdict: Showtime['verdict'], wait: number | null, spare: number | null): Showtime => ({
   showtimeId: id,

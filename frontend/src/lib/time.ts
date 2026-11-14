@@ -49,3 +49,13 @@ export function addMinISO(iso: string, min: number): string {
 }
 
 export const pad2 = (n: number) => String(n).padStart(2, '0');
+
+/**
+ * 시간표 표기 → 화면 표기. 자정 이후 심야 회차(24:00 이상)는 실제 시각으로 바꾼다.
+ * 예: "25:10" → "01:10", "24:15" → "00:15", "14:40" → "14:40". 형식이 다르면 그대로 둔다.
+ */
+export function clockTime(businessTime: string): string {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(businessTime);
+  if (!m) return businessTime;
+  return `${pad2(Number(m[1]) % 24)}:${m[2]}`;
+}

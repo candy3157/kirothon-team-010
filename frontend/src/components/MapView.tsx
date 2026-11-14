@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Coordinates, RankedCinema, UnroutableCinema } from '../api/types';
 import { distanceKm, offsetKm } from '../lib/geo';
 import { representative } from '../lib/recommend';
-import { pad2 } from '../lib/time';
+import { clockTime, pad2 } from '../lib/time';
 import { Icon } from './Icon';
 
 interface Props {
@@ -115,11 +115,11 @@ export function MapView({ origin, cinemas, unroutable, selectedId, loading, topI
                   key={c.cinemaId}
                   className={`pin ${c.rank <= 3 ? 'top' : ''} ${selectedId === c.cinemaId ? 'sel' : ''}`}
                   style={{ left: p.x, top: p.y }}
-                  aria-label={`${c.rank}위 ${c.name}, ${rep?.businessTime ?? ''} 상영`}
+                  aria-label={`${c.rank}위 ${c.name}, ${rep ? clockTime(rep.businessTime) : ''} 상영`}
                   onClick={() => onSelect(c.cinemaId)}
                 >
                   <span className="rk">{pad2(c.rank)}</span>
-                  {rep?.businessTime}
+                  {rep && clockTime(rep.businessTime)}
                 </button>
               );
             })}

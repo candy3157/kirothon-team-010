@@ -18,8 +18,8 @@ npm run dev                 # tsx watch, HOST=127.0.0.1에만 바인딩
 
 ## 2. CORS·origin
 
-- 허용 origin은 `FRONTEND_ORIGIN`(쉼표 구분)이다. 기본값은 `http://localhost:5173`(Vite 기본) 하나다.
-- `http://127.0.0.1:5173`으로 프론트를 열면 다른 origin이다. 함께 허용하려면 다음처럼 설정한다.
+- 허용 origin은 `FRONTEND_ORIGIN`(쉼표 구분)이다. 기본값은 `http://localhost:5173`, `http://127.0.0.1:5173` 두 개다.
+- `FRONTEND_ORIGIN`을 직접 지정하면 기본값을 대신한다. 두 주소를 모두 쓰려면 둘 다 적는다.
 
 ```powershell
 $env:FRONTEND_ORIGIN = "http://localhost:5173,http://127.0.0.1:5173"

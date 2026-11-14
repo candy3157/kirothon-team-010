@@ -4,12 +4,14 @@ import type { RouteProvider } from './routing/provider.js';
 
 /** 프론트 개발 서버 기본 origin (Vite 기본값). 와일드카드는 허용하지 않는다. */
 export const DEFAULT_FRONTEND_ORIGIN = 'http://localhost:5173';
+/** 기본 허용 origin 목록. Vite를 127.0.0.1로 띄워도 같은 포트면 허용한다. */
+export const DEFAULT_FRONTEND_ORIGINS: readonly string[] = [DEFAULT_FRONTEND_ORIGIN, 'http://127.0.0.1:5173'];
 /** 전역 요청 본문 크기 제한(바이트). */
 export const GLOBAL_BODY_LIMIT = 16 * 1024;
 
 /** FRONTEND_ORIGIN(쉼표 구분)을 검증된 origin 목록으로 변환한다. '*'와 잘못된 값은 오류. */
 export function parseOrigins(raw: string | undefined): string[] {
-  const value = raw && raw.trim() !== '' ? raw : DEFAULT_FRONTEND_ORIGIN;
+  const value = raw && raw.trim() !== '' ? raw : DEFAULT_FRONTEND_ORIGINS.join(',');
   const list = value
     .split(',')
     .map((s) => s.trim())
