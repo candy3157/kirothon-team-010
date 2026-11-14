@@ -242,6 +242,12 @@ describe('RealShowtimeProvider (데모 회차)', () => {
 });
 
 describe('설정', () => {
+  it('잘못된 공급자 이름은 오류지만 값은 메시지에 넣지 않는다', () => {
+    expect(() => loadConfig({ ROUTE_PROVIDER: 'secret123' })).toThrow(/ROUTE_PROVIDER/);
+    expect(() => loadConfig({ ROUTE_PROVIDER: 'secret123' })).not.toThrow(/secret123/);
+    expect(() => loadConfig({ SHOWTIME_PROVIDER: 'secret123' })).not.toThrow(/secret123/);
+  });
+
   it('real에는 TMDB_API_KEY가 필요하다', () => {
     expect(() => loadConfig({ SHOWTIME_PROVIDER: 'real' })).toThrow(/TMDB_API_KEY/);
     const c = loadConfig({ SHOWTIME_PROVIDER: 'real', TMDB_API_KEY: 'k' });

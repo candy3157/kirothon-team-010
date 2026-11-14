@@ -113,11 +113,12 @@ export function loadRealDataConfig(env: NodeJS.ProcessEnv = process.env): RealDa
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const showtimeProvider = (env.SHOWTIME_PROVIDER?.trim() || 'sample') as string;
   const routeProvider = (env.ROUTE_PROVIDER?.trim() || 'mock') as string;
+  // 값은 오류에 넣지 않는다. 키를 잘못된 줄에 넣었을 때 콘솔에 키가 찍히는 것을 막는다.
   if (showtimeProvider !== 'sample' && showtimeProvider !== 'real') {
-    throw new Error(`지원하지 않는 SHOWTIME_PROVIDER: ${showtimeProvider} (사용 가능: sample, real)`);
+    throw new Error('SHOWTIME_PROVIDER 값이 올바르지 않습니다 (사용 가능: sample, real). backend/.env를 확인하세요.');
   }
   if (routeProvider !== 'mock') {
-    throw new Error(`지원하지 않는 ROUTE_PROVIDER: ${routeProvider} (사용 가능: mock)`);
+    throw new Error('ROUTE_PROVIDER 값이 올바르지 않습니다 (사용 가능: mock). backend/.env를 확인하세요.');
   }
   const port = Number(env.PORT ?? 3001);
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('PORT가 올바르지 않습니다.');
