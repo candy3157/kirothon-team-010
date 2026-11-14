@@ -1,0 +1,796 @@
+openapi: 3.1.0
+info:
+  title: Cinema Recommendation API
+  version: 1.0.0
+  summary: 영화 우선 탐색·이동시간 기반 영화관 추천 API
+  description: |
+    사용자가 고른 영화의 상영 여부를 먼저 확인하고, 그 영화를 상영하는 모든 지원 영화관을
+    출발 조건(출발지·이동수단·출발시각)으로 평가해 상영 시작 전에 도착 가능한 회차를 추천한다.
+
+    ## 계약 원칙 (요구사항 명세서 v1.2)
+    - **검색 반경 없음.** 요청에 `radiusKm`, `maxDistanceKm`, `nearbyOnly` 같은 거리 제한 필드가 없다.
+      알 수 없는 필드는 400으로 거부한다(`additionalProperties: false`).
+    - **영화 먼저.** 상영 여부 확인이 경로 계산보다 먼저다. `not_showing`·`unknown`이면 경로를 조회하지 않는다.
+    - **판정은 회차, 표시는 영화관.** 응답 `cinemas`는 영화관 배열이고 각 항목이 대표 회차와 회차 배열을 가진다.
+    - **MVP는 오늘 영업일만.** 심야 회차(`25:10`)는 오늘 영업일에 포함하고 시각은 다음 날 01:10으로 계산한다.
+    - **모든 시각은 오프셋을 포함한 ISO 8601**(기본 `Asia/Seoul`, `+09:00`).
+    - `도착 가능`은 이동시간 기준 판단이다. 잔여 좌석·예매 가능을 뜻하지 않는다.
+    - 샘플 데이터는 `source: sample`로 구분해 표시한다.
+
+    ## 상태 구분
+    | 구분 | 위치 | 의미 |
+    |---|---|---|
+    | `not_showing` | availability.status, meta.outcome | 데이터는 정상이고 요청 시점 이후 유효 회차가 없음 |
+    | `unknown` | availability.status, meta.outcome | 공급자 실패·범위 밖. 미상영으로 단정하지 않음 |
+    | `no_feasible_showtime` | meta.outcome | 상영 중이나 도착 가능한 회차가 없음 |
+    | `unroutableCinemas` | 응답 배열 | 경로 미확인. `도착 불가`와 다름 |
+    | `unreachableCinemas` | 응답 배열 | `도착 불가`로 확정(하한 판정 또는 모든 회차를 놓침) |
+
+    ## 프론트엔드 요구사항과의 차이 및 결정 (v1.0.0)
+    **차이:** 프론트 팀이 제공한 코드·문서가 없다(미제공). 요구사항 명세서 v1.2를 유일한 기준으로 삼았다.
+    따라서 프론트 코드와 비교한 차이는 없고, 아래 결정은 모두 명세서 기준이다. 프론트 제공 후 어긋남이 생기면
+    프론트 파일은 수정하지 않고 이 명세의 새 버전으로 반영한다.
+
+    **결정:**
+    1. 개발 서버 origin을 알 수 없어 백엔드 기본 포트는 `3001`, CORS 허용 기본값은
+       `http://localhost:5173`, `http://127.0.0.1:5173`(Vite 기본)으로 둔다. `FRONTEND_ORIGIN`으로 바꾼다. 와일드카드는 쓰지 않는다.
+    2. 추천 응답은 `meta` + `cinemas` + `unroutableCinemas` + `unreachableCinemas` 구조다.
+    3. `not_showing`·`unknown`은 오류가 아니다. 추천 API도 200과 `meta.outcome`으로 알린다.
+       `502/503`은 공급자 장애가 아닌, 서버가 응답 자체를 만들 수 없을 때만 쓴다.
+    4. 도착 가능한 회차가 하나도 없는 영화관은 `cinemas`에 넣지 않고 `unreachableCinemas`에 넣는다.
+       `reason`이 `lower_bound`(경로 호출 없이 증명) 또는 `all_showtimes_missed`(경로 조회 후 모든 회차를 놓침)다.
+    5. 영화관 `cinemas[].showtimes`는 시작시각 순이며 `arrivable`과 `unarrivable` 회차를 모두 담는다(영화관 상세용).
+       `feasibleShowtimeCount`와 `otherCount`(= 관람 가능 회차 수 - 1)는 도착 가능 회차만 센다.
+    6. `sortBy` 변경은 `GET /api/recommendations/{resultId}?sortBy=`로 한다. 경로를 다시 조회하지 않는다.
+       결과는 `expiresAt`까지 보관하며, 만료되면 404 `result_expired`가 오고 `POST`로 다시 요청한다.
+    7. 서버 정책값(`bufferMinutes`, `waitWeight`)은 요청에서 받지 않고 `meta.policy`로 알려 준다.
+    8. 오늘 영업일 밖의 `date`(availability)나 `departureTime`(추천)은 400이다. 오늘 마지막 회차 이후 출발도 400이다.
+
+    ## 변경 이력
+    | 버전 | 날짜 | 내용 |
+    |---|---|---|
+    | 1.0.0 | 2026-11-14 | 최초 확정. 이후 변경은 버전과 이 이력으로만 한다. |
+  license:
+    name: UNLICENSED
+    identifier: UNLICENSED
+servers:
+  - url: http://127.0.0.1:3001
+    description: 로컬 개발 서버(127.0.0.1에만 바인딩)
+tags:
+  - name: health
+    description: 서버 상태
+  - name: movies
+    description: 영화 검색과 상영 여부
+  - name: recommendations
+    description: 영화관 추천과 정렬 재사용
+security: []
+paths:
+  /api/health:
+    get:
+      tags: [health]
+      operationId: getHealth
+      summary: 서버 상태 확인
+      responses:
+        '200':
+          description: 정상
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/movies:
+    get:
+      tags: [movies]
+      operationId: searchMovies
+      summary: 영화 목록·제목 검색 (FR-01)
+      description: |
+        `query`가 없으면 오늘 상영 중인 영화 목록을 돌려준다. 있으면 제목에 포함된 영화만 돌려준다.
+      parameters:
+        - name: query
+          in: query
+          required: false
+          description: 제목 검색어. 앞뒤 공백은 제거한다.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+      responses:
+        '200':
+          description: 영화 목록. 결과가 없으면 빈 배열이다.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieListResponse'
+              examples:
+                search:
+                  externalValue: ./examples/movies-search.json
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/movies/{movieId}/availability:
+    get:
+      tags: [movies]
+      operationId: getMovieAvailability
+      summary: 영화 상영 여부 확인 (FR-03, 4.1)
+      description: |
+        출발지와 출발시각을 쓰지 않는다. 공급자 조회가 실패하면 오류 대신 `status: unknown`을 돌려준다.
+        `date`는 오늘 영업일만 허용한다. 생략하면 오늘이다.
+      parameters:
+        - $ref: '#/components/parameters/MovieId'
+        - name: date
+          in: query
+          required: false
+          description: 조회일(YYYY-MM-DD). MVP는 오늘 영업일만 허용한다.
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 상영 여부
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Availability'
+              examples:
+                showing:
+                  externalValue: ./examples/availability-showing.json
+                notShowing:
+                  externalValue: ./examples/availability-not-showing.json
+                unknown:
+                  externalValue: ./examples/availability-unknown.json
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/MovieNotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/recommendations:
+    post:
+      tags: [recommendations]
+      operationId: createRecommendation
+      summary: 추천 계산 (영화관 단위 결과)
+      description: |
+        처리 순서: 입력 검증 -> 상영 여부 확인 -> (`not_showing`·`unknown`이면 경로 조회 없이 종료)
+        -> 후보 확보 -> 하한 판정으로 도착 불가 분류 -> 나머지 영화관에 영화관당 1회 경로 조회
+        -> 회차 판정 -> 정렬·대표 회차 선정 -> 결과 보관(`resultId`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecommendationRequest'
+            examples:
+              default:
+                externalValue: ./examples/recommendation-request.json
+      responses:
+        '200':
+          description: |
+            추천 결과. `meta.outcome`으로 구분한다.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationResult'
+              examples:
+                recommended:
+                  externalValue: ./examples/recommendation-ok.json
+                noFeasibleShowtime:
+                  externalValue: ./examples/recommendation-no-feasible.json
+                partialRouteFailure:
+                  externalValue: ./examples/recommendation-partial-route-failure.json
+                notShowing:
+                  externalValue: ./examples/recommendation-not-showing.json
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/MovieNotFound'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/recommendations/{resultId}:
+    get:
+      tags: [recommendations]
+      operationId: getRecommendation
+      summary: 보관된 결과를 정렬만 바꿔 다시 받기 (FR-26, AT-17)
+      description: |
+        경로를 다시 조회하지 않는다. 순위와 대표 회차만 다시 정한다.
+        `sortBy`를 생략하면 결과를 만든 요청의 정렬을 쓴다.
+      parameters:
+        - name: resultId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ResultId'
+        - name: sortBy
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/SortBy'
+      responses:
+        '200':
+          description: 같은 입력과 다른 정렬로 다시 정한 결과
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationResult'
+              examples:
+                sortedByEarliest:
+                  externalValue: ./examples/recommendation-sorted-earliest.json
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/ResultExpired'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+components:
+  parameters:
+    MovieId:
+      name: movieId
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/MovieId'
+  responses:
+    BadRequest:
+      description: |
+        잘못된 입력. 코드: `invalid_request`, `unsupported_date`(오늘 영업일이 아닌 날짜),
+        `departure_out_of_range`(오늘 영업일 밖이거나 오늘 마지막 회차 이후의 출발시각).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalid:
+              value:
+                code: invalid_request
+                message: 요청 형식이 올바르지 않습니다.
+                requestId: req_01
+                details:
+                  - field: origin.latitude
+                    issue: 위도는 -90 이상 90 이하여야 합니다.
+            unsupportedDate:
+              value:
+                code: unsupported_date
+                message: 현재는 오늘 영업일만 조회할 수 있습니다.
+                requestId: req_02
+    MovieNotFound:
+      description: 알 수 없는 영화. 코드 `movie_not_found`.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: movie_not_found
+            message: 영화를 찾을 수 없습니다.
+            requestId: req_03
+    ResultExpired:
+      description: 결과 만료 또는 없음. 코드 `result_expired`. `POST /api/recommendations`로 다시 요청한다.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: result_expired
+            message: 추천 결과가 만료되었습니다. 다시 요청해 주세요.
+            requestId: req_04
+    PayloadTooLarge:
+      description: 요청 본문이 너무 큼. 코드 `payload_too_large`.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: payload_too_large
+            message: 요청 본문이 너무 큽니다.
+            requestId: req_05
+    TooManyRequests:
+      description: 요청 제한 초과. 코드 `rate_limited`. `Retry-After`(초)를 따른다.
+      headers:
+        Retry-After:
+          description: 다시 시도하기까지 기다릴 초
+          schema:
+            type: integer
+            minimum: 0
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: rate_limited
+            message: 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.
+            requestId: req_06
+    BadGateway:
+      description: 외부 공급자 장애로 응답을 만들 수 없음. 코드 `upstream_unavailable`.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: upstream_unavailable
+            message: 외부 데이터 공급자에 연결할 수 없습니다.
+            requestId: req_07
+    ServiceUnavailable:
+      description: 서버가 일시적으로 처리할 수 없음. 코드 `service_unavailable`.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: service_unavailable
+            message: 서비스를 일시적으로 사용할 수 없습니다.
+            requestId: req_08
+  schemas:
+    Health:
+      type: object
+      additionalProperties: false
+      required: [status, time]
+      properties:
+        status:
+          type: string
+          const: ok
+        time:
+          type: string
+          format: date-time
+    ErrorCode:
+      type: string
+      description: 오류 코드. 내부 정보(스택, 공급자 이름, 키, 경로)는 담지 않는다.
+      enum:
+        - invalid_request
+        - unsupported_date
+        - departure_out_of_range
+        - movie_not_found
+        - result_expired
+        - payload_too_large
+        - rate_limited
+        - upstream_unavailable
+        - service_unavailable
+        - internal_error
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          $ref: '#/components/schemas/ErrorCode'
+        message:
+          type: string
+          description: 사용자에게 보여도 되는 문장
+        requestId:
+          type: string
+        details:
+          type: array
+          description: 입력 오류의 필드별 사유(400에서만)
+          items:
+            type: object
+            additionalProperties: false
+            required: [field, issue]
+            properties:
+              field:
+                type: string
+              issue:
+                type: string
+    MovieId:
+      type: string
+      pattern: '^[A-Za-z0-9_-]{1,64}$'
+      examples: [movie_001]
+    ResultId:
+      type: string
+      pattern: '^[A-Za-z0-9_-]{8,64}$'
+      examples: [res_8f3a2c1d9b7e]
+    CinemaId:
+      type: string
+      pattern: '^[A-Za-z0-9_-]{1,64}$'
+    ShowtimeId:
+      type: string
+      pattern: '^[A-Za-z0-9_-]{1,64}$'
+    DataSource:
+      type: string
+      description: 데이터 출처. 샘플 데이터는 `sample`로 구분한다.
+      enum: [sample, provider]
+    Coverage:
+      type: string
+      description: |
+        `supported_cinemas`는 지원 범위 안의 모든 영화관을 확인함, `partial`은 일부 수집 실패, `none`은 확인된 영화관 없음.
+        전국 전체의 완전성을 뜻하지 않는다.
+      enum: [supported_cinemas, partial, none]
+    TransportMode:
+      type: string
+      enum: [car, transit, walk]
+    SortBy:
+      type: string
+      description: |
+        `balanced` = 이동분 + 0.35 x 대기분, `travel` = 이동분, `earliest` = 상영 시작.
+        동점 규칙은 요구사항 4.3을 따른다.
+      enum: [balanced, travel, earliest]
+      default: balanced
+    Coordinates:
+      type: object
+      additionalProperties: false
+      required: [latitude, longitude]
+      properties:
+        latitude:
+          type: number
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          minimum: -180
+          maximum: 180
+    Movie:
+      type: object
+      additionalProperties: false
+      required: [movieId, title]
+      properties:
+        movieId:
+          $ref: '#/components/schemas/MovieId'
+        title:
+          type: string
+        originalTitle:
+          type: [string, 'null']
+        posterUrl:
+          type: [string, 'null']
+          format: uri
+        runtimeMinutes:
+          type: [integer, 'null']
+          minimum: 1
+        isShowingToday:
+          type: boolean
+          description: 오늘 요청 시점 이후 시작하는 유효 회차가 확인되었는지
+    MovieListResponse:
+      type: object
+      additionalProperties: false
+      required: [movies, source, lastUpdatedAt]
+      properties:
+        movies:
+          type: array
+          items:
+            $ref: '#/components/schemas/Movie'
+        source:
+          $ref: '#/components/schemas/DataSource'
+        lastUpdatedAt:
+          type: [string, 'null']
+          format: date-time
+    AvailabilityStatus:
+      type: string
+      enum: [showing, not_showing, unknown]
+    Availability:
+      type: object
+      additionalProperties: false
+      required: [movieId, date, status, cinemaCount, showtimeCount, coverage, lastUpdatedAt, source]
+      properties:
+        movieId:
+          $ref: '#/components/schemas/MovieId'
+        date:
+          type: string
+          format: date
+        status:
+          $ref: '#/components/schemas/AvailabilityStatus'
+        cinemaCount:
+          type: integer
+          minimum: 0
+          description: '`showing`일 때만 0보다 큼. 지원 범위 안의 영화관 수'
+        showtimeCount:
+          type: integer
+          minimum: 0
+        coverage:
+          $ref: '#/components/schemas/Coverage'
+        lastUpdatedAt:
+          type: [string, 'null']
+          format: date-time
+        source:
+          $ref: '#/components/schemas/DataSource'
+        notices:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notice'
+    RecommendationRequest:
+      type: object
+      description: 거리 제한 필드(`radiusKm` 등)는 없으며 알 수 없는 필드는 거부한다.
+      additionalProperties: false
+      required: [movieId, origin, transportMode]
+      properties:
+        movieId:
+          $ref: '#/components/schemas/MovieId'
+        origin:
+          $ref: '#/components/schemas/Coordinates'
+        transportMode:
+          $ref: '#/components/schemas/TransportMode'
+        departureTime:
+          type: string
+          format: date-time
+          description: 오프셋을 포함한 시각. 생략하면 요청 시점(`지금`). 오늘 영업일 안이어야 한다.
+        sortBy:
+          $ref: '#/components/schemas/SortBy'
+    Notice:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum:
+            - sample_data
+            - partial_coverage
+            - route_unconfirmed
+            - route_not_computed
+            - stale_timetable
+            - booking_not_guaranteed
+        message:
+          type: string
+    Outcome:
+      type: string
+      enum:
+        - recommended
+        - no_feasible_showtime
+        - no_route_confirmed
+        - not_showing
+        - availability_unknown
+    Policy:
+      type: object
+      additionalProperties: false
+      required: [bufferMinutes, waitWeight]
+      properties:
+        bufferMinutes:
+          type: integer
+          minimum: 0
+        waitWeight:
+          type: number
+          minimum: 0
+    ResultMeta:
+      type: object
+      additionalProperties: false
+      required:
+        - resultId
+        - movieId
+        - requestedAt
+        - departureTime
+        - transportMode
+        - sortBy
+        - outcome
+        - coverage
+        - partialFailure
+        - notices
+        - expiresAt
+        - source
+        - lastUpdatedAt
+        - policy
+      properties:
+        resultId:
+          $ref: '#/components/schemas/ResultId'
+        movieId:
+          $ref: '#/components/schemas/MovieId'
+        requestedAt:
+          type: string
+          format: date-time
+        departureTime:
+          type: string
+          format: date-time
+        transportMode:
+          $ref: '#/components/schemas/TransportMode'
+        sortBy:
+          $ref: '#/components/schemas/SortBy'
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        coverage:
+          $ref: '#/components/schemas/Coverage'
+        partialFailure:
+          type: boolean
+          description: 일부 경로·공급자 실패나 미계산 후보가 있으면 true. 전체 영화관 중 최적이라고 단정하지 않는다.
+        notices:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notice'
+        expiresAt:
+          type: string
+          format: date-time
+          description: 이 시각 이후 `GET /api/recommendations/{resultId}`는 404를 돌려준다.
+        source:
+          $ref: '#/components/schemas/DataSource'
+        lastUpdatedAt:
+          type: [string, 'null']
+          format: date-time
+        policy:
+          $ref: '#/components/schemas/Policy'
+    Showtime:
+      type: object
+      additionalProperties: false
+      required:
+        - showtimeId
+        - startTime
+        - businessTime
+        - verdict
+        - waitMinutes
+        - spareMinutes
+        - rank
+        - bookingUrl
+      properties:
+        showtimeId:
+          $ref: '#/components/schemas/ShowtimeId'
+        startTime:
+          type: string
+          format: date-time
+          description: 실제 시작 시각. 시간표 `25:10`은 다음 날 `01:10`이다.
+        businessTime:
+          type: string
+          pattern: '^([01][0-9]|2[0-9]|3[0-5]):[0-5][0-9]$'
+          description: 영업일 기준 시간표 표기(예 `25:10`)
+        screenName:
+          type: [string, 'null']
+        verdict:
+          type: string
+          enum: [arrivable, unarrivable]
+        waitMinutes:
+          type: [integer, 'null']
+          description: 시작 - 도착예정. 음수일 수 있다. 경로를 조회하지 않았으면 null.
+        spareMinutes:
+          type: [integer, 'null']
+          description: 시작 - (도착예정 + 준비시간). 음수면 늦음. 경로를 조회하지 않았으면 null.
+        rank:
+          type: [integer, 'null']
+          minimum: 1
+          description: 도착 가능 회차 전체에서 현재 정렬 기준의 순위. 도착 불가면 null.
+        isRepresentative:
+          type: boolean
+        bookingUrl:
+          type: [string, 'null']
+          format: uri
+          description: 확인된 공식 예매 링크. 없으면 null. 예매 가능 여부를 보장하지 않는다.
+    Cinema:
+      type: object
+      required: [cinemaId, name, address, location]
+      properties:
+        cinemaId:
+          $ref: '#/components/schemas/CinemaId'
+        name:
+          type: string
+        address:
+          type: string
+        location:
+          $ref: '#/components/schemas/Coordinates'
+    RankedCinema:
+      description: 도착 가능한 회차가 하나 이상 있는 영화관
+      unevaluatedProperties: false
+      allOf:
+        - $ref: '#/components/schemas/Cinema'
+        - type: object
+          required:
+            - rank
+            - transportMode
+            - travelMinutes
+            - arrivalTime
+            - routeStatus
+            - directionsUrl
+            - representativeShowtimeId
+            - feasibleShowtimeCount
+            - otherCount
+            - showtimes
+          properties:
+            rank:
+              type: integer
+              minimum: 1
+              description: 대표 회차의 순위를 따른 영화관 순위
+            transportMode:
+              $ref: '#/components/schemas/TransportMode'
+            travelMinutes:
+              type: integer
+              minimum: 0
+            arrivalTime:
+              type: string
+              format: date-time
+            routeStatus:
+              type: string
+              const: ok
+            directionsUrl:
+              type: [string, 'null']
+              format: uri
+            representativeShowtimeId:
+              $ref: '#/components/schemas/ShowtimeId'
+            feasibleShowtimeCount:
+              type: integer
+              minimum: 1
+            otherCount:
+              type: integer
+              minimum: 0
+              description: 대표 회차 외 도착 가능 회차 수(`14:40 외 1개`)
+            showtimes:
+              type: array
+              description: 시작시각 순. 도착 가능·불가 회차를 모두 담는다.
+              items:
+                $ref: '#/components/schemas/Showtime'
+    UnroutableShowtime:
+      type: object
+      additionalProperties: false
+      required: [showtimeId, startTime, businessTime]
+      properties:
+        showtimeId:
+          $ref: '#/components/schemas/ShowtimeId'
+        startTime:
+          type: string
+          format: date-time
+        businessTime:
+          type: string
+        screenName:
+          type: [string, 'null']
+    UnroutableCinema:
+      description: 경로 미확인 영화관. `도착 불가`가 아니다.
+      unevaluatedProperties: false
+      allOf:
+        - $ref: '#/components/schemas/Cinema'
+        - type: object
+          required: [routeStatus, message, showtimes]
+          properties:
+            routeStatus:
+              type: string
+              enum: [route_failed, route_timeout, unsupported_area, not_computed]
+            message:
+              type: string
+            showtimes:
+              type: array
+              items:
+                $ref: '#/components/schemas/UnroutableShowtime'
+    UnreachableCinema:
+      description: 도착 불가로 확정된 영화관
+      unevaluatedProperties: false
+      allOf:
+        - $ref: '#/components/schemas/Cinema'
+        - type: object
+          required: [reason, travelMinutes, lowerBoundMinutes, lastShowtimeStart, showtimes]
+          properties:
+            reason:
+              type: string
+              enum: [lower_bound, all_showtimes_missed]
+              description: |
+                `lower_bound`: 경로 호출 없이 직선거리 하한으로 증명함.
+                `all_showtimes_missed`: 경로를 조회했으나 모든 회차에 늦음.
+            travelMinutes:
+              type: [integer, 'null']
+              description: '`lower_bound`면 null'
+            lowerBoundMinutes:
+              type: [integer, 'null']
+              description: '`all_showtimes_missed`면 null'
+            lastShowtimeStart:
+              type: string
+              format: date-time
+              description: 이 영화관의 오늘 마지막 회차 시작
+            showtimes:
+              type: array
+              items:
+                $ref: '#/components/schemas/Showtime'
+    RecommendationResult:
+      type: object
+      additionalProperties: false
+      required: [meta, cinemas, unroutableCinemas, unreachableCinemas]
+      properties:
+        meta:
+          $ref: '#/components/schemas/ResultMeta'
+        cinemas:
+          type: array
+          description: 순위 순. 지도 마커와 목록 항목이 1:1로 대응한다(FR-22).
+          items:
+            $ref: '#/components/schemas/RankedCinema'
+        unroutableCinemas:
+          type: array
+          items:
+            $ref: '#/components/schemas/UnroutableCinema'
+        unreachableCinemas:
+          type: array
+          items:
+            $ref: '#/components/schemas/UnreachableCinema'

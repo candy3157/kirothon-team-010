@@ -1,0 +1,16 @@
+{
+  "movieId": "movie_001",
+  "date": "2026-11-14",
+  "status": "showing",
+  "cinemaCount": 3,
+  "showtimeCount": 6,
+  "coverage": "supported_cinemas",
+  "lastUpdatedAt": "2026-11-14T13:45:00+09:00",
+  "source": "sample",
+  "notices": [
+    {
+      "code": "sample_data",
+      "message": "샘플 상영시간표입니다. 실제 상영 정보가 아닙니다."
+    }
+  ]
+}

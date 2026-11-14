@@ -1,0 +1,16 @@
+{
+  "movieId": "movie_001",
+  "date": "2026-11-14",
+  "status": "unknown",
+  "cinemaCount": 0,
+  "showtimeCount": 0,
+  "coverage": "none",
+  "lastUpdatedAt": null,
+  "source": "sample",
+  "notices": [
+    {
+      "code": "partial_coverage",
+      "message": "상영시간표를 불러오지 못해 상영 여부를 확인할 수 없습니다. 미상영이라는 뜻이 아닙니다."
+    }
+  ]
+}

@@ -1,0 +1,135 @@
+{
+  "meta": {
+    "resultId": "res_c4e61f0a7d33",
+    "movieId": "movie_002",
+    "requestedAt": "2026-11-14T20:58:00+09:00",
+    "departureTime": "2026-11-14T21:00:00+09:00",
+    "transportMode": "car",
+    "sortBy": "balanced",
+    "outcome": "no_feasible_showtime",
+    "coverage": "supported_cinemas",
+    "partialFailure": false,
+    "notices": [
+      {
+        "code": "sample_data",
+        "message": "샘플 상영시간표입니다. 실제 상영 정보가 아닙니다."
+      }
+    ],
+    "expiresAt": "2026-11-14T21:28:00+09:00",
+    "source": "sample",
+    "lastUpdatedAt": "2026-11-14T13:45:00+09:00",
+    "policy": {
+      "bufferMinutes": 10,
+      "waitWeight": 0.35
+    }
+  },
+  "cinemas": [],
+  "unroutableCinemas": [],
+  "unreachableCinemas": [
+    {
+      "cinemaId": "cin_gangnam",
+      "name": "샘플 강남점",
+      "address": "서울 강남구 강남대로 396",
+      "location": {
+        "latitude": 37.4979,
+        "longitude": 127.0276
+      },
+      "reason": "all_showtimes_missed",
+      "travelMinutes": 20,
+      "lowerBoundMinutes": null,
+      "lastShowtimeStart": "2026-11-14T21:20:00+09:00",
+      "showtimes": [
+        {
+          "showtimeId": "st_gangnam_2110",
+          "startTime": "2026-11-14T21:10:00+09:00",
+          "businessTime": "21:10",
+          "screenName": null,
+          "verdict": "unarrivable",
+          "waitMinutes": -10,
+          "spareMinutes": -20,
+          "rank": null,
+          "isRepresentative": false,
+          "bookingUrl": null
+        },
+        {
+          "showtimeId": "st_gangnam_2120",
+          "startTime": "2026-11-14T21:20:00+09:00",
+          "businessTime": "21:20",
+          "screenName": null,
+          "verdict": "unarrivable",
+          "waitMinutes": 0,
+          "spareMinutes": -10,
+          "rank": null,
+          "isRepresentative": false,
+          "bookingUrl": null
+        }
+      ]
+    },
+    {
+      "cinemaId": "cin_jamsil",
+      "name": "샘플 잠실점",
+      "address": "서울 송파구 올림픽로 240",
+      "location": {
+        "latitude": 37.5133,
+        "longitude": 127.1001
+      },
+      "reason": "all_showtimes_missed",
+      "travelMinutes": 25,
+      "lowerBoundMinutes": null,
+      "lastShowtimeStart": "2026-11-14T21:15:00+09:00",
+      "showtimes": [
+        {
+          "showtimeId": "st_jamsil_2115",
+          "startTime": "2026-11-14T21:15:00+09:00",
+          "businessTime": "21:15",
+          "screenName": null,
+          "verdict": "unarrivable",
+          "waitMinutes": -10,
+          "spareMinutes": -20,
+          "rank": null,
+          "isRepresentative": false,
+          "bookingUrl": null
+        }
+      ]
+    },
+    {
+      "cinemaId": "cin_haeundae",
+      "name": "샘플 해운대점",
+      "address": "부산 해운대구 해운대해변로 264",
+      "location": {
+        "latitude": 35.1631,
+        "longitude": 129.1639
+      },
+      "reason": "lower_bound",
+      "travelMinutes": null,
+      "lowerBoundMinutes": 150,
+      "lastShowtimeStart": "2026-11-14T23:00:00+09:00",
+      "showtimes": [
+        {
+          "showtimeId": "st_haeundae_2230",
+          "startTime": "2026-11-14T22:30:00+09:00",
+          "businessTime": "22:30",
+          "screenName": null,
+          "verdict": "unarrivable",
+          "waitMinutes": null,
+          "spareMinutes": null,
+          "rank": null,
+          "isRepresentative": false,
+          "bookingUrl": null
+        },
+        {
+          "showtimeId": "st_haeundae_2300",
+          "startTime": "2026-11-14T23:00:00+09:00",
+          "businessTime": "23:00",
+          "screenName": null,
+          "verdict": "unarrivable",
+          "waitMinutes": null,
+          "spareMinutes": null,
+          "rank": null,
+          "isRepresentative": false,
+          "bookingUrl": null
+        }
+      ]
+    }
+  ]
+}
