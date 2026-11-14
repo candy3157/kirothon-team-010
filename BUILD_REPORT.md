@@ -6,7 +6,10 @@
 - 실행 시간: 약 34분 (2066초), 재계획 0회
 - 결과: 20단계 모두 완료
 
-프론트엔드는 화면 흐름을 보여 주는 디자인 데모(`frontend/demo/index.html`)로 따로 만들었어요. Task Runner 실행이 끝난 뒤 [PR #2](https://github.com/candy3157/kirothon-team-010/pull/2)로 들어왔어요.
+프론트엔드는 **Kiro Crew 채팅 세션 하나**에서 두 단계로 만들었어요.
+
+1. **디자인 데모**: UX 명세서를 넣고 단일 HTML 데모를 만든 뒤, 화면을 보며 피드백을 주고받아 디자인을 다듬었어요 ([PR #2](https://github.com/candy3157/kirothon-team-010/pull/2)).
+2. **React 프로젝트**: 확정한 디자인을 React + TypeScript + Vite로 옮기고 백엔드 API에 연결했어요 ([PR #5](https://github.com/candy3157/kirothon-team-010/pull/5)).
 
 ## Kiro 활용 내역
 
@@ -21,7 +24,15 @@
 | 검증 | Task Runner 작업 16–17 | AT 시나리오 통합 테스트와 OpenAPI 계약 테스트(52개) 작성 | `backend/test/`, `backend/test/contract/` |
 | 검증 | Task Runner 작업 19 | `tsc` 오류 0건, 14개 파일 191개 테스트 통과, 빌드 성공 확인. 코드에 km 반경 컷오프가 없는지 grep으로 확인 | `docs/backend-completion.md` |
 | 검증 | Task Runner 작업 20 | 프론트 실제 통합 검증 시도. 실행 당시 프론트 코드가 없어 "보류"로 기록 | `docs/integration-report.md` |
-| 프론트 | 화면 흐름 디자인 데모 | 단일 HTML로 화면 5개 구현: 스플래시 → 영화 선택(S01) → 출발 조건(S02) → 지도 추천(S03) → 영화관 상세·회차(S04). 데이터는 mock이고 지도는 가짜 배경이에요 | `frontend/demo/index.html`, `frontend/demo/README.md` |
+| 프론트 기획 | Kiro Crew 채팅 (파일 첨부) | 프론트 UX 명세서(화면 S01–S04, 상태 관리, 예외 처리)를 넣고 화면 구조와 데모 범위를 정함 | Kiro Crew 세션 기록 |
+| 프론트 디자인 | Kiro Crew 채팅 | 단일 HTML로 화면 5개 구현: 스플래시 → 영화 선택(S01) → 출발 조건(S02) → 지도 추천(S03) → 영화관 상세·회차(S04). 데이터는 mock, 지도는 가짜 배경 | `frontend/demo/index.html`, `frontend/demo/README.md` |
+| 프론트 디자인 | Kiro Crew 채팅 (스크린샷·스케치 첨부로 반복 수정) | 약 30번의 피드백으로 디자인 확정: 블랙 & 레드 테마, 이모지 → 손그림 SVG 아이콘, 그라데이션·그림자 제거, 스플래시 화면, 영화관 카드 시간 막대, 회차 가로 카드, 검색 반경·정렬 버튼 제거 | `frontend/demo/index.html` |
+| 프론트 설계 | Kiro Crew 채팅 | `docs/openapi.yaml`, `docs/frontend-api-requirements.md`를 읽고 디자인과 API가 다른 곳 3가지를 찾음(여유 시간 설정, 출발 날짜, 주소 검색). 데모 연결 대신 React 프로젝트로 가기로 결정 | `frontend/README.md` "백엔드 계약에 맞춘 결정" |
+| 프론트 구현 | Kiro Crew 채팅 | React 18 + TypeScript + Vite 프로젝트 생성. OpenAPI 스키마를 타입으로 옮기고, API 클라이언트·오류 처리·Vite 프록시(`/api` → `:3001`) 구성. 데모 디자인을 컴포넌트로 나눔 | `frontend/src/api/`, `frontend/src/screens/`, `frontend/src/components/`, `frontend/vite.config.ts` |
+| 프론트 구현 | Kiro Crew 채팅 | 추천 결과의 모든 상태 표시: `outcome` 5가지, 경로 미확인 영화관, 도착 불가 영화관, `notices`, 400 오류(출발 시각 범위 밖) | `frontend/src/screens/Recommend.tsx`, `frontend/src/components/TheaterDetail.tsx` |
+| 프론트 검증 | Kiro Crew 채팅 (셸 실행) | `tsc` 오류 0건, 단위 테스트 7개 통과, `vite build` 성공. 백엔드와 프론트 개발 서버를 함께 띄워 프록시로 `/api/movies`, `/api/recommendations`(지금 출발·시간 지정) 실제 호출 확인 | `frontend/src/lib/lib.test.ts` |
+| 프론트 문서 | Kiro Crew 채팅 | 실행 방법, 폴더 구조, API 계약에 맞춘 결정, 상태별 화면 표 작성 | `frontend/README.md` |
+| 기타 | Kiro Crew Git 작업 | 기능별 브랜치(`feature/frontend-demo`, `feature/frontend-react`)를 만들어 커밋·푸시하고 PR 링크 생성 | [PR #2](https://github.com/candy3157/kirothon-team-010/pull/2), [PR #5](https://github.com/candy3157/kirothon-team-010/pull/5) |
 | 검증 | Task Runner 리뷰 세션 | 완료 결과 재검토. 코드(3000)와 문서(3001)의 기본 포트 불일치를 찾아 3001로 통일 | `backend/src/config.ts`, `backend/.env.example` |
 | 기타 | 단계별 에이전트 세션 | 작업마다 독립 세션이 구현하고, 앞 단계 결과를 이어받음 | Kiro Crew 세션 기록 |
 | 기타 | Kiro Crew 메모리 | 프로젝트 경로, 열린 질문, 경로 조회 생략 규칙을 세션 사이에 기억 | Kiro Crew 메모리 |
@@ -33,6 +44,18 @@
 - **경로 조회 줄이기 규칙 확정**: 영화관마다 경로 API를 다 부르면 느리고 비싸요. 그렇다고 km 반경으로 자르면 "검색 반경 없음" 원칙을 어겨요. 그래서 "직선거리 ÷ 이동수단 최고 속도"로 가장 짧은 시간을 먼저 구하고, 이 시간에도 마지막 회차에 못 가면 경로 조회를 건너뛰게 했어요 (`backend/src/services/lowerBound.ts`).
 - **상태 나누기**: "도착 불가"와 "이동시간 미확인", "상영 없음"과 "확인 불가"를 서로 다른 응답으로 나눴어요. 경로 조회가 일부 실패해도 나머지 결과는 보여 줘요 (`docs/examples/recommendation-partial-route-failure.json`).
 - **프론트 통합 검증 보류 → 디자인 데모 추가**: Task Runner 실행 때는 프론트 코드가 없어서 완료 조건 ②를 보류했어요. 대신 계약 테스트와 연동 가이드로 연동 준비를 끝냈어요. 그 뒤 화면 흐름을 먼저 확인하려고 단일 HTML 디자인 데모를 만들었어요. 데모 화면 S01–S04는 명세서의 사용자 흐름(영화 선택 → 출발 조건 → 추천 → 회차 선택)을 그대로 따라요.
+- **디자인 데모 → React 프로젝트**: 처음엔 데모 HTML에 API만 붙이는 방법도 생각했어요. 하지만 파일 하나(1,200줄)로는 함께 고치기 어렵고, 백엔드도 Vite 개발 서버(`localhost:5173`)를 가정하고 있었어요. 그래서 디자인을 확정한 뒤 React + Vite 프로젝트로 옮겼어요.
+- **API 계약에 맞춰 화면 조정**:
+
+  | 데모 화면 | React 화면 | 이유 |
+  |---|---|---|
+  | 상영 전 여유 시간 −/+ 설정 | 설정 없음. 상세 화면에 "상영 N분 전 도착 기준" 표시 | 서버 정책값(`meta.policy.bufferMinutes`)이라 요청으로 못 바꿈 |
+  | 출발 날짜·시간 지정 | 오늘 시간만 지정 | MVP는 오늘 영업일만 허용 |
+  | 현재 상영작 / 상영 예정작 탭 | 탭 없음. 오늘 상영 없는 영화는 흐리게 | 상영 예정작 데이터가 없음 |
+  | 정렬 3가지 | `sortBy: earliest` 고정 | 디자인 검토에서 정렬 버튼을 빼기로 함 |
+  | 임의 포스터 사진 | `posterUrl`, 없으면 제목 카드 | 가짜 포스터를 실제처럼 보이지 않게 |
+
+- **가져올 수 없는 정보 빼기**: 잔여 좌석은 영화관 3사 모두 공개 API가 없어요. 그래서 좌석 정보를 화면에서 뺐어요. 상영관 번호와 포맷(IMAX 등)도 디자인 검토 때 함께 뺐어요.
 
 ## 어려웠던 점과 해결 방법
 
@@ -40,12 +63,16 @@
 - **명세와 코드가 어긋날 위험**: 문서와 실제 응답이 달라지기 쉬워요. 그래서 `docs/openapi.yaml`과 `docs/examples/`를 실제 응답과 비교하는 계약 테스트 52개를 만들었어요.
 - **"반경" 문자열 오해**: grep에 `EARTH_RADIUS_KM`이 걸렸어요. 이건 거리 계산(haversine)용 지구 반지름이라, 검색 반경이 아님을 완료 기록에 남겼어요.
 - **Windows 콘솔 한글 깨짐**: 터미널에서 한글 주석이 깨져 보였어요. 파일은 UTF-8로 정상이고 콘솔 인코딩 문제임을 확인했어요.
+- **재검색 버튼 주변에 생긴 회색 상자**: "이 지역 재검색" 버튼을 반투명 빨강으로 바꿨는데 회색 테두리 상자가 계속 보였어요. 테두리 속성을 지워도 그대로였어요. 사용자가 보낸 스크린샷으로 원인을 찾았어요. 버튼을 보이게 하는 CSS 클래스 `show`가 상영회차 카드 클래스 `.show`와 이름이 같았어요. 회차 카드 클래스를 `showtime`으로 바꿔 해결했어요. 같은 이름을 쓰던 로딩 안내, 확인 창, 토스트도 함께 고쳐졌어요.
+- **피드백을 잘못 이해한 경우**: "여유 시간 설정을 토글로 두지 말아 달라"는 요청을 "형태를 바꿔 달라"로 이해해 버튼 묶음으로 바꿨다가, 원래 −/+ 형태로 되돌렸어요. 이후로는 바꿀 부분만 바꾸고 나머지는 그대로 두었어요.
+- **화면을 직접 볼 수 없음**: 작업 컴퓨터에 브라우저 자동화 도구가 없어 화면 캡처로 확인하지 못했어요. 대신 코드 문법 검사, 타입 검사, 빌드, 실제 API 호출로 검증하고, 화면은 사용자가 보고 스크린샷·스케치로 피드백했어요.
 
 ## 남은 일
 
-- 프론트 데모는 아직 백엔드 API를 부르지 않아요. `docs/openapi.yaml` 기준으로 `/api/movies`, `/api/recommendations` 연동이 필요해요.
-- 연동 뒤 `docs/integration-report.md`의 9개 시나리오를 다시 검증해야 해요.
-- 데모 지도는 가짜 배경이에요. 실제 지도 SDK 연결이 필요해요.
+- 프론트(`frontend/`)는 백엔드 API에 연결됐어요. 이제 `docs/integration-report.md`의 9개 시나리오를 화면에서 다시 검증해야 해요.
+- 지도는 아직 가짜 배경이에요. 카카오/네이버 지도 SDK 연결이 필요해요 (`frontend/src/components/MapView.tsx`만 바꾸면 돼요).
+- 출발지 검색은 미리 정한 장소 9곳뿐이에요. 백엔드에 주소→좌표 변환이 없어서 카카오 장소 검색 API 연동이 필요해요 (`frontend/src/lib/places.ts`).
+- `frontend/demo/`는 디자인 기록용으로 남겨 두었어요. 실제 화면은 `frontend/src/`예요.
 - 상영시간표와 경로는 샘플/mock 데이터예요. 실제 데이터 연동이 필요해요.
 - 이동수단별 최고 속도(자동차 150, 대중교통 350, 도보 10 km/h)는 임시 기본값이에요.
 - 영업일이 바뀌는 시각은 아직 정하지 않았어요.
