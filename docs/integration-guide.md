@@ -45,7 +45,12 @@ GET /api/movies   GET /api/movies/{id}/availability   POST /api/recommendations 
 4. **정렬 변경.** `GET /api/recommendations/{resultId}?sortBy=travel`. 경로를 다시 조회하지 않는다. `POST`를 다시 보내지 않는다.
 5. **이동수단·출발지·출발시각 변경.** 새 `POST`가 필요하다. 경로를 다시 계산한다.
 
-주소 입력은 프론트가 좌표로 바꿔 보낸다. 백엔드는 주소 변환을 하지 않는다. 위치 권한을 거부한 경우도 같다.
+**출발지 검색.** `GET /api/places?query=` (2~100자)로 장소 이름이나 주소를 좌표로 바꾼다. 서버가 네이버 지역 검색을 먼저 부르고,
+결과가 없거나 실패하면 NCP Geocoding을 부른다. 결과는 최대 5개이고 `source`가 `local` 또는 `geocode`다.
+키(`NAVER_SEARCH_*`, `NCP_MAPS_*`)는 `backend/.env`에만 둔다. 키가 없으면 `503 service_unavailable`, 외부 API가 모두 실패하면
+`502 upstream_unavailable`이다. 프론트는 두 경우 모두 기본 장소 목록(`frontend/src/lib/places.ts`)을 보여 준다. IP당 분당 30회 제한.
+
+**지도.** `frontend/.env.local`의 `VITE_NAVER_MAP_KEY_ID`가 있으면 네이버 지도를 쓴다. 키가 없거나 로드·인증에 실패하면 가짜 배경 지도를 쓴다.
 
 요청에 `radiusKm`, `maxDistanceKm`, `nearbyOnly` 같은 필드를 넣지 않는다. 알 수 없는 필드는 `400 invalid_request`다.
 

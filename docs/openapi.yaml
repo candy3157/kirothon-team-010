@@ -13,7 +13,7 @@ info:
     - **영화 먼저.** 상영 여부 확인이 경로 계산보다 먼저다. `not_showing`·`unknown`이면 경로를 조회하지 않는다.
     - **판정은 회차, 표시는 영화관.** 응답 `cinemas`는 영화관 배열이고 각 항목이 대표 회차와 회차 배열을 가진다.
     - **MVP는 오늘 영업일만.** 심야 회차(`25:10`)는 오늘 영업일에 포함하고 시각은 다음 날 01:10으로 계산한다.
-  영업일은 Asia/Seoul **04:00**에 바뀐다. 00:00–03:59 요청은 전날 영업일로 처리한다.
+      영업일은 Asia/Seoul **04:00**에 바뀐다. 00:00–03:59 요청은 전날 영업일로 처리한다.
     - **모든 시각은 오프셋을 포함한 ISO 8601**(기본 `Asia/Seoul`, `+09:00`).
     - `도착 가능`은 이동시간 기준 판단이다. 잔여 좌석·예매 가능을 뜻하지 않는다.
     - 샘플 데이터는 `source: sample`로 구분해 표시한다.
@@ -64,6 +64,8 @@ tags:
     description: 영화 검색과 상영 여부
   - name: recommendations
     description: 영화관 추천과 정렬 재사용
+  - name: places
+    description: 출발지 장소 검색
 security: []
 paths:
   /api/health:
@@ -108,6 +110,38 @@ paths:
               examples:
                 search:
                   externalValue: ./examples/movies-search.json
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/places:
+    get:
+      tags: [places]
+      operationId: searchPlaces
+      summary: 출발지 장소·주소 검색
+      description: |
+        네이버 지역 검색으로 장소 이름을 찾고, 결과가 없거나 실패하면 NCP Geocoding으로 주소를 찾는다.
+        외부 API 키는 서버에만 있다. 키가 하나도 설정되지 않으면 503이다. IP당 분당 30회로 제한한다.
+      parameters:
+        - name: query
+          in: query
+          required: true
+          description: 장소 이름 또는 주소. 앞뒤 공백은 제거한다.
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 100
+      responses:
+        '200':
+          description: 장소 후보(최대 5개). 결과가 없으면 빈 배열이다.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceListResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '429':
@@ -469,6 +503,39 @@ components:
         lastUpdatedAt:
           type: [string, 'null']
           format: date-time
+    Place:
+      type: object
+      additionalProperties: false
+      required: [name, address, latitude, longitude, source]
+      properties:
+        name:
+          type: string
+          description: 장소 이름. Geocoding 결과는 주소와 같다.
+        address:
+          type: string
+          description: 도로명 주소(없으면 지번 주소). 비어 있을 수 있다.
+        latitude:
+          type: number
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          minimum: -180
+          maximum: 180
+        source:
+          type: string
+          enum: [local, geocode]
+          description: '`local` = 네이버 지역 검색, `geocode` = NCP Geocoding'
+    PlaceListResponse:
+      type: object
+      additionalProperties: false
+      required: [places]
+      properties:
+        places:
+          type: array
+          maxItems: 5
+          items:
+            $ref: '#/components/schemas/Place'
     AvailabilityStatus:
       type: string
       enum: [showing, not_showing, unknown]

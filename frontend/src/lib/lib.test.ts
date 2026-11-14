@@ -104,3 +104,17 @@ describe('recommend', () => {
     expect(unarrivableReason(st('y', '2026-11-14T15:00:00+09:00', 'unarrivable', 5, -5))).toBe('여유 시간 부족');
   });
 });
+
+describe('naverMapScriptUrl', () => {
+  it('키가 있으면 ncpKeyId를 붙인다', async () => {
+    const { naverMapScriptUrl } = await import('./naverMap');
+    expect(naverMapScriptUrl({ VITE_NAVER_MAP_KEY_ID: 'abc' })).toBe(
+      'https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=abc',
+    );
+  });
+  it('키가 없거나 https가 아니면 null', async () => {
+    const { naverMapScriptUrl } = await import('./naverMap');
+    expect(naverMapScriptUrl({ VITE_NAVER_MAP_KEY_ID: ' ' })).toBeNull();
+    expect(naverMapScriptUrl({ VITE_NAVER_MAP_KEY_ID: 'abc', VITE_NAVER_MAP_SCRIPT_URL: 'http://x.test/maps.js' })).toBeNull();
+  });
+});
