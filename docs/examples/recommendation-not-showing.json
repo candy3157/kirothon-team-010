@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "resultId": "res_5d0a8b3e6f21",
+    "movieId": "movie_003",
+    "requestedAt": "2026-11-14T13:58:00+09:00",
+    "departureTime": "2026-11-14T14:00:00+09:00",
+    "transportMode": "transit",
+    "sortBy": "balanced",
+    "outcome": "not_showing",
+    "coverage": "supported_cinemas",
+    "partialFailure": false,
+    "notices": [
+      {
+        "code": "sample_data",
+        "message": "샘플 상영시간표입니다. 실제 상영 정보가 아닙니다."
+      }
+    ],
+    "expiresAt": "2026-11-14T14:28:00+09:00",
+    "source": "sample",
+    "lastUpdatedAt": "2026-11-14T13:45:00+09:00",
+    "policy": {
+      "bufferMinutes": 10,
+      "waitWeight": 0.35
+    }
+  },
+  "cinemas": [],
+  "unroutableCinemas": [],
+  "unreachableCinemas": []
+}

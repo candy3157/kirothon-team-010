@@ -1,0 +1,10 @@
+{
+  "movieId": "movie_001",
+  "origin": {
+    "latitude": 37.5,
+    "longitude": 127
+  },
+  "transportMode": "transit",
+  "departureTime": "2026-11-14T14:00:00+09:00",
+  "sortBy": "balanced"
+}

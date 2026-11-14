@@ -1,0 +1,22 @@
+{
+  "movies": [
+    {
+      "movieId": "movie_001",
+      "title": "샘플 영화 A",
+      "originalTitle": null,
+      "posterUrl": null,
+      "runtimeMinutes": 118,
+      "isShowingToday": true
+    },
+    {
+      "movieId": "movie_002",
+      "title": "샘플 영화 B",
+      "originalTitle": null,
+      "posterUrl": null,
+      "runtimeMinutes": 96,
+      "isShowingToday": true
+    }
+  ],
+  "source": "sample",
+  "lastUpdatedAt": "2026-11-14T13:45:00+09:00"
+}

@@ -1,0 +1,162 @@
+{
+  "meta": {
+    "resultId": "res_8f3a2c1d9b7e",
+    "movieId": "movie_001",
+    "requestedAt": "2026-11-14T13:58:00+09:00",
+    "departureTime": "2026-11-14T14:00:00+09:00",
+    "transportMode": "transit",
+    "sortBy": "earliest",
+    "outcome": "recommended",
+    "coverage": "supported_cinemas",
+    "partialFailure": false,
+    "notices": [
+      {
+        "code": "sample_data",
+        "message": "샘플 상영시간표입니다. 실제 상영 정보가 아닙니다."
+      }
+    ],
+    "expiresAt": "2026-11-14T14:28:00+09:00",
+    "source": "sample",
+    "lastUpdatedAt": "2026-11-14T13:45:00+09:00",
+    "policy": {
+      "bufferMinutes": 10,
+      "waitWeight": 0.35
+    }
+  },
+  "cinemas": [
+    {
+      "cinemaId": "cin_gangnam",
+      "name": "샘플 강남점",
+      "address": "서울 강남구 강남대로 396",
+      "location": {
+        "latitude": 37.4979,
+        "longitude": 127.0276
+      },
+      "rank": 1,
+      "transportMode": "transit",
+      "travelMinutes": 25,
+      "arrivalTime": "2026-11-14T14:25:00+09:00",
+      "routeStatus": "ok",
+      "directionsUrl": "https://example.com/directions?dest=cin_gangnam",
+      "representativeShowtimeId": "st_gangnam_1440",
+      "feasibleShowtimeCount": 2,
+      "otherCount": 1,
+      "showtimes": [
+        {
+          "showtimeId": "st_gangnam_1430",
+          "startTime": "2026-11-14T14:30:00+09:00",
+          "businessTime": "14:30",
+          "screenName": null,
+          "verdict": "unarrivable",
+          "waitMinutes": 5,
+          "spareMinutes": -5,
+          "rank": null,
+          "isRepresentative": false,
+          "bookingUrl": null
+        },
+        {
+          "showtimeId": "st_gangnam_1440",
+          "startTime": "2026-11-14T14:40:00+09:00",
+          "businessTime": "14:40",
+          "screenName": null,
+          "verdict": "arrivable",
+          "waitMinutes": 15,
+          "spareMinutes": 5,
+          "rank": 1,
+          "isRepresentative": true,
+          "bookingUrl": "https://example.com/booking/sample/gangnam/1440"
+        },
+        {
+          "showtimeId": "st_gangnam_1630",
+          "startTime": "2026-11-14T16:30:00+09:00",
+          "businessTime": "16:30",
+          "screenName": null,
+          "verdict": "arrivable",
+          "waitMinutes": 125,
+          "spareMinutes": 115,
+          "rank": 4,
+          "isRepresentative": false,
+          "bookingUrl": null
+        }
+      ]
+    },
+    {
+      "cinemaId": "cin_jamsil",
+      "name": "샘플 잠실점",
+      "address": "서울 송파구 올림픽로 240",
+      "location": {
+        "latitude": 37.5133,
+        "longitude": 127.1001
+      },
+      "rank": 2,
+      "transportMode": "transit",
+      "travelMinutes": 30,
+      "arrivalTime": "2026-11-14T14:30:00+09:00",
+      "routeStatus": "ok",
+      "directionsUrl": "https://example.com/directions?dest=cin_jamsil",
+      "representativeShowtimeId": "st_jamsil_1500",
+      "feasibleShowtimeCount": 1,
+      "otherCount": 0,
+      "showtimes": [
+        {
+          "showtimeId": "st_jamsil_1500",
+          "startTime": "2026-11-14T15:00:00+09:00",
+          "businessTime": "15:00",
+          "screenName": null,
+          "verdict": "arrivable",
+          "waitMinutes": 30,
+          "spareMinutes": 20,
+          "rank": 2,
+          "isRepresentative": true,
+          "bookingUrl": null
+        }
+      ]
+    },
+    {
+      "cinemaId": "cin_suwon",
+      "name": "샘플 수원점",
+      "address": "경기 수원시 팔달구 덕영대로 924",
+      "location": {
+        "latitude": 37.2636,
+        "longitude": 127.0286
+      },
+      "rank": 3,
+      "transportMode": "transit",
+      "travelMinutes": 65,
+      "arrivalTime": "2026-11-14T15:05:00+09:00",
+      "routeStatus": "ok",
+      "directionsUrl": "https://example.com/directions?dest=cin_suwon",
+      "representativeShowtimeId": "st_suwon_1530",
+      "feasibleShowtimeCount": 2,
+      "otherCount": 1,
+      "showtimes": [
+        {
+          "showtimeId": "st_suwon_1530",
+          "startTime": "2026-11-14T15:30:00+09:00",
+          "businessTime": "15:30",
+          "screenName": null,
+          "verdict": "arrivable",
+          "waitMinutes": 25,
+          "spareMinutes": 15,
+          "rank": 3,
+          "isRepresentative": true,
+          "bookingUrl": null
+        },
+        {
+          "showtimeId": "st_suwon_0110",
+          "startTime": "2026-11-15T01:10:00+09:00",
+          "businessTime": "25:10",
+          "screenName": null,
+          "verdict": "arrivable",
+          "waitMinutes": 605,
+          "spareMinutes": 595,
+          "rank": 5,
+          "isRepresentative": false,
+          "bookingUrl": null
+        }
+      ]
+    }
+  ],
+  "unroutableCinemas": [],
+  "unreachableCinemas": []
+}
