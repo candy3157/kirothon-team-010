@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { TransportMode } from '../api/types';
 import { Icon } from '../components/Icon';
 import { Poster } from '../components/Poster';
@@ -152,13 +153,17 @@ export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
         {past && <div className="notice bad">지난 시각이에요. 출발 시각을 다시 선택해 주세요.</div>}
       </div>
 
-      <div className="cta-bar">
-        <div className="inner">
-          <button className="btn primary" disabled={!valid} onClick={onSubmit}>
-            영화관 추천받기
-          </button>
-        </div>
-      </div>
+      {/* 화면 밀기 애니메이션 중에도 바닥에 고정되도록 body에 직접 그린다 */}
+      {createPortal(
+        <div className="cta-bar">
+          <div className="inner">
+            <button className="btn primary" disabled={!valid} onClick={onSubmit}>
+              영화관 추천받기
+            </button>
+          </div>
+        </div>,
+        document.body,
+      )}
     </section>
   );
 }
