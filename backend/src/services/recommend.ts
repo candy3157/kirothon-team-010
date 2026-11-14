@@ -6,8 +6,8 @@ import {
   businessTimeToInstant,
   businessTimeToIso,
   isWithinBookingWindow,
+  businessDateOf,
   lastShowtimeStart,
-  seoulDateOf,
   toSeoulIso,
 } from '../time.js';
 import type {
@@ -143,8 +143,8 @@ export async function recommend(deps: RecommendDeps, req: RecommendationRequest)
   const sortBy: SortBy = req.sortBy ?? DEFAULT_SORT_BY;
   const departure = parseDeparture(req.departureTime, now);
 
-  // 조회 가능한 날짜(오늘 ~ 오늘+MAX_ADVANCE_DAYS) 밖의 출발시각 거부.
-  const departureDate = seoulDateOf(departure);
+  // 조회 가능한 영업일(04시 기준, 오늘 ~ 오늘+MAX_ADVANCE_DAYS) 밖의 출발시각 거부.
+  const departureDate = businessDateOf(departure);
   if (!isWithinBookingWindow(departureDate, now, MAX_ADVANCE_DAYS)) {
     throw new RecommendError(
       400,

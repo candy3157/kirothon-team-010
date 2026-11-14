@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Coordinates, RankedCinema, ResultMeta, Showtime, UnroutableCinema, UnroutableShowtime } from '../api/types';
 import { distanceKm, kakaoDirectionsUrl } from '../lib/geo';
 import { representative, unarrivableReason } from '../lib/recommend';
-import { addMinISO, dayLabel, hm, pad2 } from '../lib/time';
+import { addMinISO, clockTime, dayLabel, hm, pad2 } from '../lib/time';
 import { MODE } from '../state';
 import { useConfirmOut, useToast } from './Feedback';
 import { Icon } from './Icon';
@@ -94,7 +94,7 @@ export function TheaterDetail({ cinema: c, origin, meta, movieTitle, runtimeMinu
             if (!isJudged(s)) {
               return (
                 <button key={s.showtimeId} className="showtime" disabled>
-                  <b>{s.businessTime}</b>
+                  <b>{clockTime(s.businessTime)}</b>
                   {end && <span className="f">~{end}</span>}
                   <div className="why">도착 시간 확인 불가</div>
                 </button>
@@ -109,7 +109,7 @@ export function TheaterDetail({ cinema: c, origin, meta, movieTitle, runtimeMinu
                 disabled={!ok}
                 onClick={() => setSelId(s.showtimeId)}
               >
-                <b>{s.businessTime}</b>
+                <b>{clockTime(s.businessTime)}</b>
                 {end && <span className="f">~{end}</span>}
                 <div className="why">
                   {ok ? (
@@ -128,7 +128,7 @@ export function TheaterDetail({ cinema: c, origin, meta, movieTitle, runtimeMinu
 
       {ranked && sel && sel.verdict === 'arrivable' && (
         <div className="pick-sum">
-          <b>{sel.businessTime} 회차 선택</b>
+          <b>{clockTime(sel.businessTime)} 회차 선택</b>
           <br />
           {hm(c.arrivalTime)} 도착 예상 → 상영 <b>{sel.waitMinutes}분 전</b> 도착
           {sel.spareMinutes != null && sel.spareMinutes >= 0 && (
@@ -160,7 +160,7 @@ export function TheaterDetail({ cinema: c, origin, meta, movieTitle, runtimeMinu
                 <>
                   공식 예매 페이지로 이동합니다.
                   <br />
-                  회차 정보가 자동으로 넘어가지 않으면 <b>{sel.businessTime}</b> 회차를 다시 선택해 주세요.
+                  회차 정보가 자동으로 넘어가지 않으면 <b>{clockTime(sel.businessTime)}</b> 회차를 다시 선택해 주세요.
                 </>
               ),
               url: sel.bookingUrl,

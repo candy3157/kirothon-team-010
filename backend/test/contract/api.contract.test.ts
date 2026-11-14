@@ -39,6 +39,7 @@ describe('명세 자체와 예제', () => {
         '/api/health',
         '/api/movies',
         '/api/movies/{movieId}/availability',
+        '/api/places',
         '/api/recommendations',
         '/api/recommendations/{resultId}',
       ].sort(),

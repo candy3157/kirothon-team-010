@@ -1,0 +1,6 @@
+/// <reference types="vite/client" />
+
+interface ImportMetaEnv {
+  readonly VITE_NAVER_MAP_KEY_ID?: string;
+  readonly VITE_NAVER_MAP_SCRIPT_URL?: string;
+}

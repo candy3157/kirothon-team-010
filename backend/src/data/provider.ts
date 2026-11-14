@@ -1,3 +1,4 @@
+import { todayBusinessDate } from '../time.js';
 import type { Cinema, Coverage, DataSource, Movie, RawShowtime } from '../types.js';
 import {
   SAMPLE_CINEMAS,
@@ -38,9 +39,9 @@ export interface ShowtimeProvider {
   getMovieShowtimes(movieId: string, businessDate?: string): Promise<MovieShowtimesResult>;
 }
 
-/** 현재 시각 기준 오늘 날짜(Asia/Seoul, YYYY-MM-DD). */
+/** 현재 시각 기준 오늘 영업일(Asia/Seoul, 04시 기준, YYYY-MM-DD). */
 export function todayInSeoul(now: Date = new Date()): string {
-  return new Date(now.getTime() + 9 * 3600_000).toISOString().slice(0, 10);
+  return todayBusinessDate(now);
 }
 
 export interface SampleProviderOptions {

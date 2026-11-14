@@ -1,7 +1,7 @@
 import type { Coordinates, RankedCinema } from '../api/types';
 import { distanceKm } from '../lib/geo';
 import { representative } from '../lib/recommend';
-import { diffMin, hm, pad2 } from '../lib/time';
+import { clockTime, diffMin, hm, pad2 } from '../lib/time';
 import { MODE } from '../state';
 import { Icon } from './Icon';
 
@@ -43,7 +43,7 @@ export function TheaterCard({ cinema: c, origin, departureTime, badges, selected
         </div>
         <div className="start">
           <small>상영시간</small>
-          <b>{rep.businessTime}</b>
+          <b>{clockTime(rep.businessTime)}</b>
         </div>
       </div>
 
@@ -54,7 +54,7 @@ export function TheaterCard({ cinema: c, origin, departureTime, badges, selected
             <i className="tl-go" style={{ width: `${travelPct}%` }} />
             <i className="tl-mark" style={{ left: `${travelPct}%` }} />
           </div>
-          <span>{rep.businessTime}</span>
+          <span>{clockTime(rep.businessTime)}</span>
         </div>
         <div className="tl-tags">
           <span className="tag travel">

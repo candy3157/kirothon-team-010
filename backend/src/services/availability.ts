@@ -1,4 +1,5 @@
 import type { MovieShowtimesResult, ShowtimeProvider } from '../data/provider.js';
+import { todayBusinessDate } from '../time.js';
 import type { Availability, Notice } from '../types.js';
 import { candidatesFrom } from './candidates.js';
 
@@ -93,7 +94,7 @@ export async function checkAvailability(
         movie: null,
         cinemas: [],
         showtimes: [],
-        businessDate: businessDate ?? new Date(now.getTime() + 9 * 3600_000).toISOString().slice(0, 10),
+        businessDate: businessDate ?? todayBusinessDate(now),
       },
       now,
     );

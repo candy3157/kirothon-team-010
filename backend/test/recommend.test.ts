@@ -238,6 +238,18 @@ describe('AT-18 도착 불가 하한 판정', () => {
 });
 
 describe('AT-19 25:10 심야 회차', () => {
+  it.each([
+    ['2026-11-14T23:30:00', '2026-11-15T00:10:00', '2026-11-15T01:10:00+09:00'],
+    ['2026-11-15T00:00:00', '2026-11-15T00:10:00', '2026-11-15T01:10:00+09:00'],
+    ['2026-11-14T14:00:00', '2026-11-21T00:10:00', '2026-11-21T01:10:00+09:00'],
+  ])('현재 %s에서 %s 출발 시 같은 영업일의 심야 회차를 사용한다', async (now, departure, start) => {
+    const { deps } = setup({ now: () => new Date(`${now}+09:00`) });
+    const r = await recommend(deps, req({ departureTime: `${departure}+09:00`, transportMode: 'car' }));
+    const suwon = r.cinemas.find(c => c.cinemaId === 'cin_suwon');
+    expect(suwon).toBeDefined();
+    expect(suwon?.showtimes.find(s => s.businessTime === '25:10')).toMatchObject({ startTime: start, verdict: 'arrivable' });
+  });
+
   it('오늘 영업일 회차로 포함하고 다음 날 01:10으로 계산한다', async () => {
     const at = () => new Date('2026-11-14T22:50:00+09:00');
     const { deps } = setup({ now: at });
@@ -252,5 +264,18 @@ describe('AT-19 25:10 심야 회차', () => {
     expect(late.waitMinutes).toBe(65);
     expect(late.spareMinutes).toBe(55);
     expect(suwon.representativeShowtimeId).toBe(late.showtimeId);
+  });
+
+  it('자정이 지나도(00:00 요청) 04시 전까지는 같은 영업일로 25:10 회차를 본다', async () => {
+    const at = () => new Date('2026-11-15T00:00:00+09:00');
+    const { deps } = setup({ now: at });
+    const r = await recommend(deps, req());
+    const suwon = [...r.cinemas, ...r.unreachableCinemas].find((c) => c.cinemaId === 'cin_suwon');
+    expect(suwon?.showtimes.some((s) => s.businessTime === '25:10')).toBe(true);
+    // 04시 이후는 다음 영업일의 시간표를 사용하며 7일 조회 범위 안에서는 허용한다.
+    const next = await recommend(deps, req({ departureTime: '2026-11-15T04:30:00+09:00' }));
+    expect(next.meta.departureTime).toBe('2026-11-15T04:30:00+09:00');
+    expect(next.cinemas.length).toBeGreaterThan(0);
+    expect(next.cinemas.flatMap(c => c.showtimes).some(s => s.startTime === '2026-11-16T01:10:00+09:00')).toBe(true);
   });
 });
