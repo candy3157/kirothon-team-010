@@ -248,7 +248,25 @@ h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.035em; line-height: 1
 .toast { position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%) translateY(20px); opacity: 0; background: #fff; color: #111; padding: 10px 16px; border-radius: 4px; font-size: 14px; font-weight: 600; z-index: 60; transition: 0.25s; pointer-events: none; }
 .toast.on { opacity: 1; transform: translateX(-50%); }
 
+/* =========================================================
+   누름 애니메이션 (A · 눌림)
+   - 누르는 동안 살짝 작아짐, 선택 색은 0.2초 동안 부드럽게 바뀜
+   - 고른 이동수단 아이콘·회차 시각이 살짝 뛰어오름
+   ========================================================= */
+.btn, .chip, .seg button, .card, .showtime, .movie, .map-tools button, .research button {
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.14s cubic-bezier(0.2, 0.7, 0.2, 1), background-color 0.22s ease, border-color 0.22s ease, color 0.22s ease, opacity 0.15s;
+}
+.btn:active:not(:disabled), .chip:active, .seg button:active, .showtime:active:not(:disabled),
+.map-tools button:active, .research button:active { transform: scale(0.96); }
+.card:active:not(.dim), .movie:active { transform: scale(0.985); }
+.seg button[aria-pressed='true'] .i { animation: hop 0.35s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.showtime[aria-pressed='true'] b { display: inline-block; animation: hop 0.3s ease; }
+@keyframes hop { 40% { transform: translateY(-3px); } }
+
 @media (prefers-reduced-motion: reduce) {
   .splash-logo, .splash-slogan { animation: none; opacity: 1; transform: none; }
   .splash, .world, .sheet { transition: none; }
+  .btn, .chip, .seg button, .card, .showtime, .movie, .map-tools button, .research button { transition: none; transform: none !important; }
+  .seg button[aria-pressed='true'] .i, .showtime[aria-pressed='true'] b { animation: none; }
 }
