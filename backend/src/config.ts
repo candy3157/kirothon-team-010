@@ -34,12 +34,53 @@ export function parseOrigins(raw: string | undefined): string[] {
 export type ShowtimeProviderName = 'sample';
 export type RouteProviderName = 'mock';
 
+/** 네이버 API 설정. 키는 서버에서만 쓰고 응답·로그에 담지 않는다. 값이 없으면 undefined. */
+export interface NaverConfig {
+  /** 네이버 검색(지역) API 주소 */
+  searchLocalUrl: string;
+  searchClientId?: string;
+  searchClientSecret?: string;
+  /** NCP Maps Geocoding API 주소 */
+  geocodeUrl: string;
+  mapsApiKeyId?: string;
+  mapsApiKey?: string;
+}
+
+export const DEFAULT_NAVER_SEARCH_LOCAL_URL = 'https://openapi.naver.com/v1/search/local.json';
+export const DEFAULT_NCP_GEOCODE_URL = 'https://maps.apigw.ntruss.com/map-geocode/v2/geocode';
+
 export interface AppConfig {
   host: string;
   port: number;
   frontendOrigins: string[];
   showtimeProvider: ShowtimeProviderName;
   routeProvider: RouteProviderName;
+  naver: NaverConfig;
+}
+
+const opt = (v: string | undefined): string | undefined => (v && v.trim() !== '' ? v.trim() : undefined);
+
+function httpsUrl(name: string, v: string | undefined, fallback: string): string {
+  const value = opt(v) ?? fallback;
+  let u: URL;
+  try {
+    u = new URL(value);
+  } catch {
+    throw new Error(`${name} 값이 올바른 URL이 아닙니다.`);
+  }
+  if (u.protocol !== 'https:') throw new Error(`${name}은 https만 허용합니다.`);
+  return u.toString();
+}
+
+export function loadNaverConfig(env: NodeJS.ProcessEnv = process.env): NaverConfig {
+  return {
+    searchLocalUrl: httpsUrl('NAVER_SEARCH_LOCAL_URL', env.NAVER_SEARCH_LOCAL_URL, DEFAULT_NAVER_SEARCH_LOCAL_URL),
+    searchClientId: opt(env.NAVER_SEARCH_CLIENT_ID),
+    searchClientSecret: opt(env.NAVER_SEARCH_CLIENT_SECRET),
+    geocodeUrl: httpsUrl('NCP_GEOCODE_URL', env.NCP_GEOCODE_URL, DEFAULT_NCP_GEOCODE_URL),
+    mapsApiKeyId: opt(env.NCP_MAPS_API_KEY_ID),
+    mapsApiKey: opt(env.NCP_MAPS_API_KEY),
+  };
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -59,6 +100,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     frontendOrigins: parseOrigins(env.FRONTEND_ORIGIN),
     showtimeProvider,
     routeProvider,
+    naver: loadNaverConfig(env),
   };
 }
 

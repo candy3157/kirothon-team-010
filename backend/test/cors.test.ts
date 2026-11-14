@@ -102,6 +102,24 @@ describe('loadConfig', () => {
     expect(c.frontendOrigins).toEqual(['http://localhost:5173', 'https://a.example.com']);
   });
 
+  it('네이버 API 값은 .env에서 읽고, 없으면 기본 주소와 빈 키', () => {
+    const empty = loadConfig({});
+    expect(empty.naver.searchLocalUrl).toBe('https://openapi.naver.com/v1/search/local.json');
+    expect(empty.naver.geocodeUrl).toBe('https://maps.apigw.ntruss.com/map-geocode/v2/geocode');
+    expect(empty.naver.searchClientId).toBeUndefined();
+    expect(empty.naver.mapsApiKey).toBeUndefined();
+
+    const set = loadConfig({ NAVER_SEARCH_CLIENT_ID: ' id ', NCP_MAPS_API_KEY: 'k', NCP_GEOCODE_URL: 'https://x.example.com/geo' });
+    expect(set.naver.searchClientId).toBe('id');
+    expect(set.naver.mapsApiKey).toBe('k');
+    expect(set.naver.geocodeUrl).toBe('https://x.example.com/geo');
+  });
+
+  it('네이버 API 주소는 https만 허용', () => {
+    expect(() => loadConfig({ NCP_GEOCODE_URL: 'http://x.example.com' })).toThrow();
+    expect(() => loadConfig({ NAVER_SEARCH_LOCAL_URL: 'not a url' })).toThrow();
+  });
+
   it('구현되지 않은 공급자 이름은 오류', () => {
     expect(() => loadConfig({ SHOWTIME_PROVIDER: 'cgv' })).toThrow();
     expect(() => loadConfig({ ROUTE_PROVIDER: 'kakao' })).toThrow();
