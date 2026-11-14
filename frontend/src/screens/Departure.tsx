@@ -135,6 +135,7 @@ export function Departure({ ctx, onChange, onChangeMovie, onSubmit }: Props) {
                   aria-selected={ctx.origin?.label === p.label}
                   onClick={() => {
                     onChange({ origin: { label: p.label, latitude: p.latitude, longitude: p.longitude } });
+                    setGeo('idle'); // 직접 골랐으면 위치 실패 안내는 지운다
                     setQ('');
                     setShowSuggest(false);
                   }}
