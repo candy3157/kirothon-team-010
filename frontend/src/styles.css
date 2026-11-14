@@ -286,3 +286,27 @@ h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.035em; line-height: 1
   .btn, .chip, .seg button, .card, .showtime, .movie, .map-tools button, .research button { transition: none; transform: none !important; }
   .seg button[aria-pressed='true'] .i, .showtime[aria-pressed='true'] b { animation: none; }
 }
+
+/* =========================================================
+   S02 출발 조건 — 한 화면에 꽉 차게, 스크롤 없음
+   - 맨 위 단계 표시줄 위치는 그대로(28px)
+   - 요소 사이 간격만 넓힘. 버튼·칸·글자 크기는 그대로
+   - 큰 간격은 늘어나는 빈칸(.sp)이 맡는다. 화면이 크면 제안 간격까지 벌어지고,
+     작으면 최소 간격까지 줄어서 스크롤이 생기지 않는다
+   ========================================================= */
+.dep-screen { height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; }
+.dep-screen .wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 28px 18px 16px; overflow-y: auto; } /* 아주 작은 화면(높이 약 620px 미만)에서만 안쪽 스크롤 */
+.dep-screen h1 { margin: 0; }
+.dep-screen .label { margin: 0 0 14px; }
+.dep-screen .origin-set { margin-top: 14px; }
+.dep-screen .notice { margin-top: 10px; }
+.sp { display: block; flex: 1 1 0; }
+.sp-a { min-height: 8px; max-height: 36px; } /* 단계 표시줄 ↔ 제목 */
+.sp-b { min-height: 10px; max-height: 32px; } /* 제목 ↔ 영화 칸 */
+.sp-c { min-height: 10px; max-height: 44px; } /* 앞 항목 ↔ 항목 이름 */
+.dep-screen .seg, .dep-screen .chips { gap: 10px; }
+.dep-screen .origin-row { position: relative; }
+.dep-screen .origin-field { flex: 1; position: relative; }
+.dep-screen .origin-field .field { width: 100%; }
+.dep-screen .suggest { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 30; max-height: min(260px, 40vh); overflow-y: auto; margin: 0; }
+.dep-screen .cta-bar { position: static; flex: none; }
