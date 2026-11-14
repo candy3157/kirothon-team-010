@@ -1,5 +1,6 @@
 import type { Coordinates, RankedCinema, Showtime, UnroutableCinema } from '../api/types';
 import { distanceKm } from './geo';
+import { wholeMin } from './time';
 
 /** 영화관의 대표 회차 (없으면 첫 도착 가능 회차) */
 export function representative(c: RankedCinema): Showtime | undefined {
@@ -33,7 +34,7 @@ export function reasonBadges(cinemas: RankedCinema[]): Map<string, string[]> {
 /** 회차가 왜 안 되는지 짧은 설명 */
 export function unarrivableReason(s: Showtime): string {
   if (s.spareMinutes == null) return '도착 시간 확인 불가';
-  if (s.waitMinutes != null && s.waitMinutes < 0) return `${-s.waitMinutes}분 늦게 도착`;
+  if (s.waitMinutes != null && s.waitMinutes < 0) return `${wholeMin(-s.waitMinutes)}분 늦게 도착`;
   return '여유 시간 부족';
 }
 

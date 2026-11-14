@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Coordinates, RankedCinema, ResultMeta, Showtime, UnroutableCinema, UnroutableShowtime } from '../api/types';
 import { distanceKm, kakaoDirectionsUrl } from '../lib/geo';
 import { representative, unarrivableReason } from '../lib/recommend';
-import { addMinISO, clockTime, dayLabel, hm, pad2 } from '../lib/time';
+import { addMinISO, clockTime, dayLabel, hm, pad2, wholeMin } from '../lib/time';
 import { MODE } from '../state';
 import { useConfirmOut, useToast } from './Feedback';
 import { Icon } from './Icon';
@@ -62,7 +62,7 @@ export function TheaterDetail({ cinema: c, origin, meta, movieTitle, runtimeMinu
           <div className="travel-box">
             <div>
               <small>{MODE[c.transportMode].label}</small>
-              <b>{c.travelMinutes}분</b>
+              <b>{wholeMin(c.travelMinutes)}분</b>
             </div>
             <div>
               <small>예상 도착</small>
@@ -114,7 +114,7 @@ export function TheaterDetail({ cinema: c, origin, meta, movieTitle, runtimeMinu
                 <div className="why">
                   {ok ? (
                     <span className="ok">
-                      <Icon name="check" /> {s.waitMinutes}분 여유
+                      <Icon name="check" /> {wholeMin(s.waitMinutes ?? 0)}분 여유
                     </span>
                   ) : (
                     unarrivableReason(s)
@@ -130,7 +130,7 @@ export function TheaterDetail({ cinema: c, origin, meta, movieTitle, runtimeMinu
         <div className="pick-sum">
           <b>{clockTime(sel.businessTime)} 회차 선택</b>
           <br />
-          {hm(c.arrivalTime)} 도착 예상 → 상영 <b>{sel.waitMinutes}분 전</b> 도착
+          {hm(c.arrivalTime)} 도착 예상 → 상영 <b>{wholeMin(sel.waitMinutes ?? 0)}분 전</b> 도착
           {sel.spareMinutes != null && sel.spareMinutes >= 0 && (
             <>
               <br />

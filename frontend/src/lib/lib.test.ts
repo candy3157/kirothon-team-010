@@ -154,3 +154,13 @@ describe('initialViewPoints', () => {
     expect(pts).toEqual([near.location]);
   });
 });
+
+describe('wholeMin', () => {
+  it('소수점을 버린다 (반올림하지 않음)', async () => {
+    const { wholeMin } = await import('./time');
+    expect(wholeMin(10.099133333333333)).toBe(10);
+    expect(wholeMin(10.99)).toBe(10);
+    expect(wholeMin(-3.7)).toBe(-3);
+    expect(Object.is(wholeMin(-0.4), 0)).toBe(true);
+  });
+});

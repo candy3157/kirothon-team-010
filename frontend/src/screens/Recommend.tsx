@@ -6,7 +6,7 @@ import { MapView } from '../components/MapView';
 import { TheaterCard } from '../components/TheaterCard';
 import { TheaterDetail } from '../components/TheaterDetail';
 import { reasonBadges } from '../lib/recommend';
-import { departureLabel, hm } from '../lib/time';
+import { departureLabel, hm, wholeMin } from '../lib/time';
 import { MODE, type SearchContext } from '../state';
 
 export interface ResultState {
@@ -380,8 +380,8 @@ function ResultList({ result, loading, listRef, renderCards, onOpen, onRetry, on
                     {c.name}
                     <small>
                       {c.reason === 'all_showtimes_missed'
-                        ? `이동 ${c.travelMinutes}분 · 남은 회차에 모두 늦어요`
-                        : `최소 ${c.lowerBoundMinutes}분 거리 · 마지막 회차 ${hm(c.lastShowtimeStart)}`}
+                        ? `이동 ${wholeMin(c.travelMinutes ?? 0)}분 · 남은 회차에 모두 늦어요`
+                        : `최소 ${wholeMin(c.lowerBoundMinutes ?? 0)}분 거리 · 마지막 회차 ${hm(c.lastShowtimeStart)}`}
                     </small>
                   </div>
                 </div>
