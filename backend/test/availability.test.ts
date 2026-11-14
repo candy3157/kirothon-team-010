@@ -90,5 +90,10 @@ describe('AT-04 확인 불가', () => {
     };
     const r = await checkAvailability(throwing, 'movie_001', NOW);
     expect(r.availability.status).toBe('unknown');
+    const dawn = new Date('2026-11-15T00:30:00+09:00');
+    const implicit = await checkAvailability(throwing, 'movie_001', dawn);
+    expect(implicit.availability.date).toBe('2026-11-14');
+    const explicit = await checkAvailability(throwing, 'movie_001', dawn, '2026-11-20');
+    expect(explicit.availability.date).toBe('2026-11-20');
   });
 });

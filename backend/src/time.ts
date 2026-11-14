@@ -1,4 +1,4 @@
-import { TIME_ZONE_OFFSET } from './policy.js';
+import { BUSINESS_DAY_START_HOUR, TIME_ZONE_OFFSET } from './policy.js';
 
 /**
  * 시간 유틸리티. 시간표는 영업일 기준 'HH:MM'이며 HH는 24 이상일 수 있다
@@ -37,14 +37,44 @@ export function seoulDateOf(instant: Date): string {
   return new Date(instant.getTime() + OFFSET_MS).toISOString().slice(0, 10);
 }
 
-/** 오늘 영업일(YYYY-MM-DD). MVP는 Asia/Seoul 달력 날짜와 같다. */
+/**
+ * 실제 시각이 속한 영업일(YYYY-MM-DD). 영업일은 BUSINESS_DAY_START_HOUR(04시)에 바뀐다.
+ * 예: 11-15 03:59 KST → '2026-11-14', 11-15 04:00 KST → '2026-11-15'.
+ */
+export function businessDateOf(instant: Date): string {
+  return seoulDateOf(new Date(instant.getTime() - BUSINESS_DAY_START_HOUR * 3600_000));
+}
+
+/** 오늘 영업일(YYYY-MM-DD). */
 export function todayBusinessDate(now: Date = new Date()): string {
-  return seoulDateOf(now);
+  return businessDateOf(now);
 }
 
 /** 해당 영업일이 오늘 영업일인가. */
 export function isTodayBusinessDate(businessDate: string, now: Date = new Date()): boolean {
   return businessDate === todayBusinessDate(now);
+}
+
+/** YYYY-MM-DD에 n일을 더한 날짜. */
+export function addDays(date: string, n: number): string {
+  assertDate(date);
+  return new Date(Date.parse(`${date}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+}
+
+/** 조회 가능한 영업일인가: 오늘 ~ 오늘 + maxAdvanceDays (포함). */
+export function isWithinBookingWindow(businessDate: string, now: Date, maxAdvanceDays: number): boolean {
+  const today = todayBusinessDate(now);
+  return businessDate >= today && businessDate <= addDays(today, maxAdvanceDays);
+}
+
+/** 해당 영업일 회차이면서 요청 시점 이후 시작하는가. */
+export function isUpcomingShowtimeOn(
+  targetDate: string,
+  businessDate: string,
+  businessTime: string,
+  now: Date,
+): boolean {
+  return businessDate === targetDate && startsAfter(businessTimeToInstant(businessDate, businessTime), now);
 }
 
 /** 영업일 + 시간표 문자열 -> 실제 시각(Date). '25:10' -> 다음 날 01:10 KST. */

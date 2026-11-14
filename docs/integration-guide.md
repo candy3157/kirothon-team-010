@@ -18,8 +18,8 @@ npm run dev                 # tsx watch, HOST=127.0.0.1에만 바인딩
 
 ## 2. CORS·origin
 
-- 허용 origin은 `FRONTEND_ORIGIN`(쉼표 구분)이다. 기본값은 `http://localhost:5173`(Vite 기본) 하나다.
-- `http://127.0.0.1:5173`으로 프론트를 열면 다른 origin이다. 함께 허용하려면 다음처럼 설정한다.
+- 허용 origin은 `FRONTEND_ORIGIN`(쉼표 구분)이다. 기본값은 `http://localhost:5173`, `http://127.0.0.1:5173` 두 개다.
+- `FRONTEND_ORIGIN`을 직접 지정하면 기본값을 대신한다. 두 주소를 모두 쓰려면 둘 다 적는다.
 
 ```powershell
 $env:FRONTEND_ORIGIN = "http://localhost:5173,http://127.0.0.1:5173"
@@ -45,7 +45,12 @@ GET /api/movies   GET /api/movies/{id}/availability   POST /api/recommendations 
 4. **정렬 변경.** `GET /api/recommendations/{resultId}?sortBy=travel`. 경로를 다시 조회하지 않는다. `POST`를 다시 보내지 않는다.
 5. **이동수단·출발지·출발시각 변경.** 새 `POST`가 필요하다. 경로를 다시 계산한다.
 
-주소 입력은 프론트가 좌표로 바꿔 보낸다. 백엔드는 주소 변환을 하지 않는다. 위치 권한을 거부한 경우도 같다.
+**출발지 검색.** `GET /api/places?query=` (2~100자)로 장소 이름이나 주소를 좌표로 바꾼다. 서버가 네이버 지역 검색을 먼저 부르고,
+결과가 없거나 실패하면 NCP Geocoding을 부른다. 결과는 최대 5개이고 `source`가 `local` 또는 `geocode`다.
+키(`NAVER_SEARCH_*`, `NCP_MAPS_*`)는 `backend/.env`에만 둔다. 키가 없으면 `503 service_unavailable`, 외부 API가 모두 실패하면
+`502 upstream_unavailable`이다. 프론트는 두 경우 모두 기본 장소 목록(`frontend/src/lib/places.ts`)을 보여 준다. IP당 분당 30회 제한.
+
+**지도.** `frontend/.env.local`의 `VITE_NAVER_MAP_KEY_ID`가 있으면 네이버 지도를 쓴다. 키가 없거나 로드·인증에 실패하면 가짜 배경 지도를 쓴다.
 
 요청에 `radiusKm`, `maxDistanceKm`, `nearbyOnly` 같은 필드를 넣지 않는다. 알 수 없는 필드는 `400 invalid_request`다.
 
@@ -80,7 +85,7 @@ GET /api/movies   GET /api/movies/{id}/availability   POST /api/recommendations 
 |---|---|---|---|
 | 400 | `invalid_request` | 입력 형식 오류 | `details[].field`를 입력 칸에 표시 |
 | 400 | `unsupported_date` | 오늘이 아닌 날짜 | 날짜 변경 불가 안내(MVP는 오늘만) |
-| 400 | `departure_out_of_range` | 오늘 영업일 밖이거나 오늘 마지막 회차 이후 출발 | 출발시각 재입력 |
+| 400 | `departure_out_of_range` | 오늘 영업일(04:00 ~ 다음 날 03:59) 밖이거나 오늘 마지막 회차 이후 출발 | 출발시각 재입력 |
 | 404 | `movie_not_found` | 알 수 없는 영화 | 영화 선택 화면으로 |
 | 404 | `result_expired` | 결과 만료·없음 | 6절 참고 |
 | 413 | `payload_too_large` | 본문이 큼 | 입력 확인 |

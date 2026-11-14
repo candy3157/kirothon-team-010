@@ -9,14 +9,18 @@ import { Recommend, type ResultState } from './screens/Recommend';
 import { contextKey, initialContext, type SearchContext } from './state';
 
 type Screen = 'splash' | 'movie' | 'departure' | 'recommend';
+/** 화면 순서. 뒤 화면으로 가면 오른쪽에서, 앞 화면으로 돌아가면 왼쪽에서 들어온다. */
+const ORDER: Screen[] = ['splash', 'movie', 'departure', 'recommend'];
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('splash');
+  const [dir, setDir] = useState<'fwd' | 'back' | ''>('');
   const [ctx, setCtx] = useState<SearchContext>(initialContext);
   const [result, setResult] = useState<ResultState | null>(null);
   const reqSeq = useRef(0);
 
   const go = (s: Screen) => {
+    setDir(ORDER.indexOf(s) > ORDER.indexOf(screen) ? 'fwd' : 'back');
     setScreen(s);
     window.scrollTo(0, 0);
   };
@@ -49,6 +53,8 @@ export default function App() {
         {result?.loading ? '추천 영화관을 찾는 중입니다' : result?.data ? `관람 가능한 영화관 ${result.data.cinemas.length}곳을 찾았습니다` : ''}
       </div>
 
+      {/* 화면 전환: key가 바뀔 때마다 새 화면이 dir 방향으로 밀려 들어온다 (styles.css "화면 전환") */}
+      <div key={screen} className={`page ${dir}`}>
       {screen === 'splash' && <Splash onDone={() => go('movie')} />}
 
       {screen === 'movie' && (
@@ -83,6 +89,7 @@ export default function App() {
           onChangeMovie={() => go('movie')}
         />
       )}
+      </div>
     </FeedbackProvider>
   );
 }

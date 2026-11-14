@@ -1,5 +1,5 @@
 import type { MovieShowtimesResult, ShowtimeProvider } from '../data/provider.js';
-import { businessTimeToInstant, isUpcomingTodayShowtime } from '../time.js';
+import { businessTimeToInstant, isUpcomingShowtimeOn } from '../time.js';
 import type { Cinema, RawShowtime } from '../types.js';
 
 /** 후보 영화관 하나와 그 영화관의 유효(요청 시점 이후) 회차. */
@@ -10,12 +10,12 @@ export interface CandidateCinema {
 }
 
 /**
- * 공급자 결과에서 요청 시점 이후 시작하는 오늘 영업일 회차만 남긴다.
- * 이미 시작한 회차와 오늘이 아닌 영업일 회차는 제외한다.
+ * 공급자 결과에서 조회한 영업일(result.businessDate)의 회차 중 요청 시점 이후 시작하는 것만 남긴다.
+ * 이미 시작한 회차와 다른 영업일 회차는 제외한다.
  */
 export function upcomingShowtimes(result: MovieShowtimesResult, now: Date): RawShowtime[] {
   return result.showtimes
-    .filter((s) => isUpcomingTodayShowtime(s.businessDate, s.businessTime, now))
+    .filter((s) => isUpcomingShowtimeOn(result.businessDate, s.businessDate, s.businessTime, now))
     .sort(
       (a, b) =>
         businessTimeToInstant(a.businessDate, a.businessTime).getTime() -

@@ -92,11 +92,15 @@ describe('recommend', () => {
     expect(routes.callCount).toBe(0);
   });
 
-  it('다른 날·마지막 회차 이후 출발과 알 수 없는 영화는 거부한다', async () => {
+  it('조회 범위 밖·마지막 회차 이후 출발과 알 수 없는 영화는 거부한다', async () => {
     const { deps } = setup();
-    await expect(recommend(deps, req({ departureTime: '2026-11-15T09:00:00+09:00' }))).rejects.toMatchObject({
-      code: 'departure_out_of_range',
-    });
+    // 오늘부터 7일(오늘+6일)까지는 허용
+    const tomorrow = await recommend(deps, req({ departureTime: '2026-11-15T09:00:00+09:00' }));
+    expect(tomorrow.meta.departureTime).toBe('2026-11-15T09:00:00+09:00');
+    expect(tomorrow.cinemas.every((c) => c.showtimes.every((s) => s.startTime.startsWith('2026-11-15') || s.startTime.startsWith('2026-11-16')))).toBe(true);
+    for (const t of ['2026-11-21T09:00:00+09:00', '2026-11-13T09:00:00+09:00']) {
+      await expect(recommend(deps, req({ departureTime: t }))).rejects.toMatchObject({ code: 'departure_out_of_range' });
+    }
     await expect(recommend(deps, req({ departureTime: '2026-11-14T23:30:00+09:00' }))).resolves.toBeDefined();
     await expect(recommend(deps, req({ departureTime: 'nope' }))).rejects.toMatchObject({ code: 'invalid_request' });
     await expect(recommend(deps, req({ movieId: 'movie_999' }))).rejects.toMatchObject({ code: 'movie_not_found' });

@@ -2,7 +2,8 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Coordinates, RankedCinema, UnroutableCinema } from '../api/types';
 import { distanceKm, offsetKm } from '../lib/geo';
 import { representative } from '../lib/recommend';
-import { pad2 } from '../lib/time';
+import { loadNaverMaps, naverMapScriptUrl, onNaverAuthFailure, type NaverMapState } from '../lib/naverMap';
+import { clockTime, pad2 } from '../lib/time';
 import { Icon } from './Icon';
 
 interface Props {
@@ -19,10 +20,186 @@ interface Props {
 }
 
 /**
- * 추천 지도. 지금은 SDK 없이 그린 가짜 배경 지도다.
- * TODO: 카카오/네이버 지도 SDK로 교체할 때 이 컴포넌트만 바꾸면 된다(props 유지).
+ * 추천 지도. VITE_NAVER_MAP_KEY_ID가 있으면 네이버 지도를 쓰고,
+ * 키가 없거나 로드·인증에 실패하면 SDK 없이 그린 가짜 배경 지도를 쓴다.
  */
-export function MapView({ origin, cinemas, unroutable, selectedId, loading, topInset, bottomInset, onSelect, onDragged }: Props) {
+export function MapView(props: Props) {
+  const [state, setState] = useState<NaverMapState>(() => (naverMapScriptUrl() ? 'loading' : 'fail'));
+
+  useEffect(() => {
+    if (state !== 'loading') return;
+    let alive = true;
+    loadNaverMaps().then(
+      () => alive && setState('ready'),
+      () => alive && setState('fail'),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [state]);
+
+  useEffect(() => onNaverAuthFailure(() => setState('fail')), []);
+
+  return state === 'ready' ? <NaverMapView {...props} /> : <FakeMapView {...props} />;
+}
+
+/** 0x0 상자 안에 둔 마커 내용. 기존 .pin/.me CSS가 (0,0)을 기준으로 그려진다. */
+function anchorBox(...children: HTMLElement[]): HTMLElement {
+  const box = document.createElement('div');
+  box.style.cssText = 'position:relative;width:0;height:0';
+  box.append(...children);
+  return box;
+}
+
+function el(tag: string, className: string, text?: string): HTMLElement {
+  const e = document.createElement(tag);
+  e.className = className;
+  if (text !== undefined) e.textContent = text; // 데이터는 textContent로만 넣는다
+  return e;
+}
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function NaverMapView({ origin, cinemas, unroutable, selectedId, loading, topInset, bottomInset, onSelect, onDragged }: Props) {
+  const ref = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<any>(null);
+  const originMarker = useRef<any>(null);
+  const markers = useRef<any[]>([]);
+  const cb = useRef({ onSelect, onDragged });
+  cb.current = { onSelect, onDragged };
+  const N = window.naver!.maps;
+  const ll = (p: Coordinates) => new N.LatLng(p.latitude, p.longitude);
+
+  // 지도는 한 번만 만든다. 개발 모드(StrictMode)는 effect를 두 번 돌리므로,
+  // destroy()한 요소를 다시 쓰지 않도록 실행마다 새 상자를 만든다.
+  useEffect(() => {
+    const host = document.createElement('div');
+    host.style.cssText = 'position:absolute;inset:0';
+    ref.current!.appendChild(host);
+    const map = new N.Map(host, {
+      center: ll(origin),
+      zoom: 13,
+      scaleControl: false,
+      mapDataControl: false,
+      zoomControl: false,
+      logoControlOptions: { position: N.Position.BOTTOM_LEFT },
+    });
+    mapRef.current = map;
+    const l = N.Event.addListener(map, 'dragend', () => cb.current.onDragged());
+    return () => {
+      N.Event.removeListener(l);
+      markers.current.forEach((m) => m.setMap(null));
+      originMarker.current?.setMap(null);
+      map.destroy();
+      host.remove();
+      mapRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 출발 위치 마커
+  useEffect(() => {
+    originMarker.current?.setMap(null);
+    originMarker.current = new N.Marker({
+      map: mapRef.current,
+      position: ll(origin),
+      zIndex: 10,
+      icon: { content: anchorBox(el('div', 'me'), el('div', 'me-label', '출발')), anchor: new N.Point(0, 0) },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [origin.latitude, origin.longitude]);
+
+  // 영화관 마커
+  useEffect(() => {
+    markers.current.forEach((m) => m.setMap(null));
+    markers.current = [];
+    if (loading) return;
+    const add = (c: Coordinates, id: string, pin: HTMLElement, z: number) => {
+      pin.style.cssText = 'left:0;top:0';
+      pin.addEventListener('click', (e) => {
+        e.stopPropagation();
+        cb.current.onSelect(id);
+      });
+      markers.current.push(
+        new N.Marker({
+          map: mapRef.current,
+          position: ll(c),
+          zIndex: z,
+          icon: { content: anchorBox(pin), anchor: new N.Point(0, 0) },
+        }),
+      );
+    };
+    for (const c of cinemas) {
+      const rep = representative(c);
+      const sel = selectedId === c.cinemaId;
+      const pin = el('button', `pin ${c.rank <= 3 ? 'top' : ''} ${sel ? 'sel' : ''}`);
+      pin.setAttribute('aria-label', `${c.rank}위 ${c.name}, ${rep ? clockTime(rep.businessTime) : ''} 상영`);
+      pin.append(el('span', 'rk', pad2(c.rank)), document.createTextNode(rep ? clockTime(rep.businessTime) : ''));
+      add(c.location, c.cinemaId, pin, sel ? 5 : c.rank <= 3 ? 3 : 1);
+    }
+    for (const c of unroutable) {
+      const sel = selectedId === c.cinemaId;
+      const pin = el('button', `pin unk ${sel ? 'sel' : ''}`);
+      pin.setAttribute('aria-label', `${c.name}, 이동시간 확인 불가`);
+      pin.append(el('span', 'rk', '?'), document.createTextNode('확인 불가'));
+      add(c.location, c.cinemaId, pin, sel ? 5 : 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cinemas, unroutable, selectedId, loading]);
+
+  // 결과가 바뀌면 출발지와 모든 영화관이 보이게
+  useEffect(() => {
+    const map = mapRef.current;
+    const pts = [...cinemas, ...unroutable].map((c) => c.location);
+    if (!map) return;
+    if (pts.length === 0) {
+      map.setCenter(ll(origin));
+      return;
+    }
+    const b = new N.LatLngBounds(ll(origin), ll(origin));
+    pts.forEach((p) => b.extend(ll(p)));
+    map.fitBounds(b, { top: topInset + 40, bottom: bottomInset + 40, left: 40, right: 60 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cinemas, unroutable]);
+
+  // 선택한 영화관을 보이는 영역 가운데로
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!selectedId || !map) return;
+    const c = [...cinemas, ...unroutable].find((x) => x.cinemaId === selectedId);
+    if (!c) return;
+    const proj = map.getProjection();
+    const o = proj.fromCoordToOffset(ll(c.location));
+    const d = (topInset - bottomInset) / 2; // 보이는 영역 가운데가 화면 가운데보다 아래로 d px
+    map.panTo(proj.fromOffsetToCoord(new N.Point(o.x, o.y - d)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
+
+  const zoomBy = (step: number) => {
+    const map = mapRef.current;
+    if (map) map.setZoom(map.getZoom() + step, true);
+  };
+
+  return (
+    <>
+      <div ref={ref} className="map naver" aria-hidden="true" />
+      <div className="map-tools" style={{ top: topInset + 14 }}>
+        <button aria-label="확대" onClick={() => zoomBy(1)}>
+          <Icon name="plus" />
+        </button>
+        <button aria-label="축소" onClick={() => zoomBy(-1)}>
+          <Icon name="minus" />
+        </button>
+        <button aria-label="출발 위치로" onClick={() => mapRef.current?.panTo(ll(origin))}>
+          <Icon name="target" />
+        </button>
+      </div>
+    </>
+  );
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+/** SDK 없이 그린 가짜 배경 지도 (키가 없을 때) */
+function FakeMapView({ origin, cinemas, unroutable, selectedId, loading, topInset, bottomInset, onSelect, onDragged }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -115,11 +292,11 @@ export function MapView({ origin, cinemas, unroutable, selectedId, loading, topI
                   key={c.cinemaId}
                   className={`pin ${c.rank <= 3 ? 'top' : ''} ${selectedId === c.cinemaId ? 'sel' : ''}`}
                   style={{ left: p.x, top: p.y }}
-                  aria-label={`${c.rank}위 ${c.name}, ${rep?.businessTime ?? ''} 상영`}
+                  aria-label={`${c.rank}위 ${c.name}, ${rep ? clockTime(rep.businessTime) : ''} 상영`}
                   onClick={() => onSelect(c.cinemaId)}
                 >
                   <span className="rk">{pad2(c.rank)}</span>
-                  {rep?.businessTime}
+                  {rep && clockTime(rep.businessTime)}
                 </button>
               );
             })}

@@ -94,8 +94,17 @@ describe('GET /api/movies/:movieId/availability', () => {
     expect(res.json().status).toBe('unknown');
   });
 
-  it('AT-20: 오늘이 아닌 날짜는 400 unsupported_date', async () => {
-    for (const d of ['2026-11-15', '2026-11-13']) {
+  it('AT-20: 오늘부터 7일 안의 날짜는 허용한다', async () => {
+    for (const d of ['2026-11-15', '2026-11-20']) {
+      const res = await make().inject(`/api/movies/movie_001/availability?date=${d}`);
+      expect(res.statusCode).toBe(200);
+      expect(res.json().date).toBe(d);
+      await app.close();
+    }
+  });
+
+  it('AT-20: 지난 날짜나 7일 뒤 날짜는 400 unsupported_date', async () => {
+    for (const d of ['2026-11-21', '2026-11-13']) {
       const res = await make().inject(`/api/movies/movie_001/availability?date=${d}`);
       expect(res.statusCode).toBe(400);
       expect(res.json().code).toBe('unsupported_date');

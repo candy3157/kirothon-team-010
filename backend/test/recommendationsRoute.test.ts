@@ -94,8 +94,11 @@ describe('POST /api/recommendations', () => {
     expect(res.json().code).toBe('movie_not_found');
   });
 
-  it('오늘 영업일이 아닌 출발시각은 400 departure_out_of_range', async () => {
-    const res = await post(make(), body({ departureTime: '2026-11-16T10:00:00+09:00' }));
+  it('7일 안의 다른 날 출발은 200, 범위 밖은 400 departure_out_of_range', async () => {
+    const ok = await post(make(), body({ departureTime: '2026-11-16T10:00:00+09:00' }));
+    expect(ok.statusCode).toBe(200);
+    await app.close();
+    const res = await post(make(), body({ departureTime: '2026-11-21T10:00:00+09:00' }));
     expect(res.statusCode).toBe(400);
     expect(res.json().code).toBe('departure_out_of_range');
   });

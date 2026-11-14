@@ -1,3 +1,4 @@
+import { todayBusinessDate } from '../time.js';
 import type { Cinema, Coverage, DataSource, Movie, RawShowtime } from '../types.js';
 import {
   SAMPLE_CINEMAS,
@@ -34,12 +35,13 @@ export interface MovieShowtimesResult extends ProviderMeta {
 export interface ShowtimeProvider {
   /** query가 비어 있으면 전체 목록. */
   searchMovies(query?: string): Promise<MovieSearchResult>;
-  getMovieShowtimes(movieId: string): Promise<MovieShowtimesResult>;
+  /** businessDate를 생략하면 오늘 영업일. */
+  getMovieShowtimes(movieId: string, businessDate?: string): Promise<MovieShowtimesResult>;
 }
 
-/** 현재 시각 기준 오늘 날짜(Asia/Seoul, YYYY-MM-DD). */
+/** 현재 시각 기준 오늘 영업일(Asia/Seoul, 04시 기준, YYYY-MM-DD). */
 export function todayInSeoul(now: Date = new Date()): string {
-  return new Date(now.getTime() + 9 * 3600_000).toISOString().slice(0, 10);
+  return todayBusinessDate(now);
 }
 
 export interface SampleProviderOptions {
@@ -76,8 +78,9 @@ export class SampleShowtimeProvider implements ShowtimeProvider {
     return { ...this.meta(), movies };
   }
 
-  async getMovieShowtimes(movieId: string): Promise<MovieShowtimesResult> {
-    const businessDate = this.date();
+  async getMovieShowtimes(movieId: string, date?: string): Promise<MovieShowtimesResult> {
+    // 샘플 시간표는 날짜와 관계없이 매일 같다고 가정한다.
+    const businessDate = date ?? this.date();
     const movie = SAMPLE_MOVIES.find((m) => m.movieId === movieId) ?? null;
     if (!movie) {
       return { ...this.meta('not_found'), movie: null, cinemas: [], showtimes: [], businessDate };
@@ -120,10 +123,10 @@ export class FailingShowtimeProvider implements ShowtimeProvider {
     return this.inner.searchMovies(query);
   }
 
-  async getMovieShowtimes(movieId: string): Promise<MovieShowtimesResult> {
+  async getMovieShowtimes(movieId: string, date?: string): Promise<MovieShowtimesResult> {
     if (this.failIds === null || this.failIds.has(movieId)) {
-      return { ...this.down(), movie: null, cinemas: [], showtimes: [], businessDate: todayInSeoul() };
+      return { ...this.down(), movie: null, cinemas: [], showtimes: [], businessDate: date ?? todayInSeoul() };
     }
-    return this.inner.getMovieShowtimes(movieId);
+    return this.inner.getMovieShowtimes(movieId, date);
   }
 }
